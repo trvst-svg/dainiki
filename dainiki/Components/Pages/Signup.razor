@@ -17,25 +17,27 @@
      ">
 
     <div class="welcome-message" align="center">
-        <h1 style="color:white; margin-bottom:20px;">
+        <h1 style="color:white; margin-bottom:20px; font-size:3vw">
             Welcome To Dainiki
         </h1>
-        <h1 style="color:green; margin-bottom:20px;">Signup</h1>
+        <h1 style="color:gold; margin-bottom:20px;">Signup</h1>
 
     </div>
 
     <form @onsubmit="signupValidator">
         <div class="form-group" style="margin-bottom:15px; width:300px;">
-            <label for="username" style="display:block; margin-bottom:5px;">Username</label>
-            <input type = "text" @bind = "username" placeholder = "Username" style = " width:100%; padding:8px; font-family:'Times New Roman', Times, serif;">
+            <label for="username" style="display:block; margin-bottom:4%;">Username</label>
+            <input type = "text" @bind="username" id = "username" placeholder = "Username" style = " width:100%; padding:8px; font-family:'Times New Roman', Times, serif">
         </div>
 
         <div class="form-group" style="margin-bottom:15px; width:300px;">
-            <label for="password" style="display:block; margin-bottom:5px;">Password</label>
-            <input type = "password" @bind = "password" placeholder = "Password" style ="width:100%; padding:8px; font-family:'Times New Roman', Times, serif;">
+            <label for="password" style="display:block; margin-bottom:4%;">Password</label>
+            <input type = "password" @bind="password" id = "password" placeholder = "Password" style ="width:100%; padding:8px; font-family:'Times New Roman', Times, serif;">
         </div>
-        
-        <button class = "btn btn-primary" type = "submit">Sign Up</button>
+        <div align="center">
+            <button class = "btn btn-primary" type = "submit" style="margin-top:10%; margin-bottom:10%">Sign Up</button>
+            <a href = "login"><p style="color:white">Log in instead</p></a>
+        </div>
     </form>
     <p style="margin-top:15px; color:white;">@message</p>
     
@@ -54,7 +56,7 @@
             return;
         }
 
-        message = "signed up successfully";
+        message = "signed up successfully, please login using the same credentials";
         Console.WriteLine("Signup method called");
         Navigation.NavigateTo("login");
 
