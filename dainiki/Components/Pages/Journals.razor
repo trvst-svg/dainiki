@@ -1,0 +1,32 @@
+@page "/journals";
+
+<div class="journals" style="
+        min-height:100vh;
+        background-color:#2b2b2b;
+        background-image:linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6));
+        display:flex;
+        flex-direction:column;
+        align-content: stretch;
+        justify-content:flex-start;
+        font-family:'Times New Roman', Times, serif;
+        color:white;
+        overflow: hidden;
+     ">
+    <div>
+        <div class = "dropdown" style="margin-top:1vw; margin-left: 1vw" align="left">
+            <div class="btn-group" align="left" style="margin-left: 1vw">
+                <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    change view
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><button class="dropdown-item" type="button">Calender view</button></li>
+                    <li><button class="dropdown-item" type="button">List view</button></li>
+                </ul>
+            </div>
+        </div>
+    </div>    
+    <hr/>
+    <div>
+        <div style="margin-left: 1vw; margin-top: 1vw"><h3>Previous journals</h3></div>
+    </div>
+</div>
