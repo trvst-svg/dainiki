@@ -1,1 +1,36 @@
 ﻿@page "/home"
+@inject NavigationManager Navigation
+<div class="home-page"
+     style="
+        min-height:100vh;
+        background-color:#2b2b2b;
+        background-image:linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6));
+        display:flex;
+        flex-direction:column;
+        justify-content:flex-start;
+        align-items:center;
+        font-family:'Times New Roman', Times, serif;
+        color:white;
+        overflow: hidden;
+     ">
+    <div id="welcome-message" style = "">
+        <h1 style="margin-top: 10%; font-size:4vw; color: gold">Welcome back @username</h1>
+    </div>
+    <div id="streak-display">
+        streaks will be displayed here
+    </div>
+    <div>
+        <button class = "btn btn-primary" onclick="@newButton">Create a new Dainiki</button>
+    </div>
+
+</div>
+@code{
+
+    const string username = "username";
+
+    void newButton()
+    {
+        Navigation.NavigateTo("newjournal");
+    }
+
+}
