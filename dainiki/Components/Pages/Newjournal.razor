@@ -1,0 +1,81 @@
+@page "/newjournal";
+<div class="new-journal-page" style="
+        min-height:100vh;
+        background-color:#2b2b2b;
+        background-image:linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6));
+        display:flex;
+        flex-direction:column;
+        align-content: stretch;
+        justify-content:flex-start;
+        font-family:'Times New Roman', Times, serif;
+        color:white;
+        overflow: hidden;
+">
+    <div class="header-message" style="margin-top: 3vw; margin-left: 1vw">
+        <h1 style="color: gold">Write today's dainiki</h1>
+    </div>
+    
+    <div class="dainiki-input-fields">
+        <div class="title-input" style="margin-left: 1vw">
+            <div><label for = "title">Title <br/></label></div>
+            <input id = "title" placeholder="Title" @bind="title" style ="width:20%; padding:8px; font-family:'Times New Roman', Times, serif" />
+        </div>
+        <div class = "dropdown" style="margin-top:1vw">
+            <div class="btn-group" align="left" style="margin-left: 1vw">
+                <button type="button" @bind = "primaryMood" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    primary mood
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><button class="dropdown-item" type="button">angry</button></li>
+                    <li><button class="dropdown-item" type="button">happy</button></li>
+                    <li><button class="dropdown-item" type="button">sad</button></li>
+                </ul>
+            </div>
+            
+            <div class="btn-group" align="center" style="margin-left: 1vw">
+                <button type="button" @bind = "mood1" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    mood 1
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><button class="dropdown-item" type="button">angry</button></li>
+                    <li><button class="dropdown-item" type="button">happy</button></li>
+                    <li><button class="dropdown-item" type="button">sad</button></li>
+                </ul>
+            </div>
+            
+            <div class="btn-group" align="right" style="margin-left: 1vw">
+                <button type="button" @bind = "mood2" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    mood 2
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><button class="dropdown-item" type="button">angry</button></li>
+                    <li><button class="dropdown-item" type="button">happy</button></li>
+                    <li><button class="dropdown-item" type="button">sad</button></li>
+                </ul>
+            </div>
+        </div>
+        <div style="margin-top: 1vw; margin-left: 1vw">
+            <div><label for = "description">Write your content here <br/></label></div>
+            <textarea type = "text" id = "description" @bind = "description" style ="width:80%; margin-top:1vw; height:15vw; font-family:'Times New Roman', Times, serif;"/>
+        </div>
+        <div align="right" style="margin-top: 2vw; margin-left: 50%">
+            <button @onclick="saveJournal">Save</button>
+        </div>
+        
+    </div>
+</div>
+
+
+@code{
+
+    private string title;
+    private string primaryMood, mood1, mood2;
+    private string description;
+
+    void saveJournal()
+    {
+        
+    }
+
+}
+
