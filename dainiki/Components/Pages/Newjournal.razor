@@ -22,7 +22,7 @@
     <div class="dainiki-input-fields">
 
         <!-- Title -->
-        <div class="title-input" style="margin-left:1vw;">
+        <div class="title-input" style="margin-left:1vw; margin-top:1vw;">
             <label>Title</label><br />
             <input placeholder="Title"
                    @bind="title"
@@ -104,6 +104,34 @@
             </div>
         </div>
 
+        <!-- Tags -->
+        <div style="margin-top:1vw; margin-left:1vw;">
+            <label>Tags</label>
+
+            <div class="btn-group">
+                <button type="button"
+                        class="btn btn-secondary dropdown-toggle"
+                        data-bs-toggle="dropdown">
+                    @(selectedTags.Count == 0
+                        ? "Select tags"
+                        : string.Join(", ", selectedTags))
+                </button>
+
+                <ul class="dropdown-menu" style="max-height:200px; overflow-y:auto;">
+                    @foreach (var tag in allTags)
+                    {
+                        <li>
+                            <button class="dropdown-item"
+                                    type="button"
+                                    @onclick="() => ToggleTag(tag)">
+                                @(selectedTags.Contains(tag) ? "✓ " : "")@tag
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+
     </div>
 
     <!-- Journal Content -->
@@ -130,18 +158,38 @@
 
 @code {
     private string title;
+    private string description;
+
     private string primaryMood = "Select mood";
     private string mood1 = "Select mood";
     private string mood2 = "Select mood";
-    private string description;
 
     private List<string> moods = new()
     {
         "happy", "sad", "angry", "amused", "funny"
     };
 
+    private List<string> allTags = new()
+    {
+        "Work", "Career", "Studies", "Family", "Friends", "Relationships",
+        "Health", "Fitness", "Personal Growth", "Self-care", "Hobbies", "Travel", "Nature",
+        "Finance", "Spirituality", "Birthday", "Holiday", "Vacation", "Celebration", "Exercise",
+        "Reading", "Writing", "Cooking", "Meditation", "Yoga", "Music", "Shopping", "Parenting",
+        "Projects", "Planning", "Reflection"
+    };
+
+    private List<string> selectedTags = new();
+
+    void ToggleTag(string tag)
+    {
+        if (selectedTags.Contains(tag))
+            selectedTags.Remove(tag);
+        else
+            selectedTags.Add(tag);
+    }
+
     void saveJournal()
     {
-        // Save logic here
+        
     }
 }
