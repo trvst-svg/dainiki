@@ -1,81 +1,147 @@
-@page "/newjournal";
-<div class="new-journal-page" style="
+@page "/newjournal"
+
+<div class="new-journal-page"
+     style="
         min-height:100vh;
         background-color:#2b2b2b;
         background-image:linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6));
         display:flex;
         flex-direction:column;
-        align-content: stretch;
         justify-content:flex-start;
         font-family:'Times New Roman', Times, serif;
         color:white;
-        overflow: hidden;
-">
-    <div class="header-message" style="margin-top: 3vw; margin-left: 1vw">
-        <h1 style="color: gold">Write today's dainiki</h1>
+        overflow:hidden;
+     ">
+
+    <!-- Header -->
+    <div class="header-message" style="margin-top:3vw; margin-left:1vw;">
+        <h1 style="color:gold;">Write today's dainiki</h1>
     </div>
-    
+
+    <!-- Input Fields -->
     <div class="dainiki-input-fields">
-        <div class="title-input" style="margin-left: 1vw">
-            <div><label for = "title">Title <br/></label></div>
-            <input id = "title" placeholder="Title" @bind="title" style ="width:20%; padding:8px; font-family:'Times New Roman', Times, serif" />
+
+        <!-- Title -->
+        <div class="title-input" style="margin-left:1vw;">
+            <label>Title</label><br />
+            <input placeholder="Title"
+                   @bind="title"
+                   style="width:20%; padding:8px; font-family:'Times New Roman', Times, serif;" />
         </div>
-        <div class = "dropdown" style="margin-top:1vw">
-            <div class="btn-group" align="left" style="margin-left: 1vw">
-                <button type="button" @bind = "primaryMood" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    primary mood
+
+        <!-- Primary Mood -->
+        <div style="margin-top:1vw; margin-left:1vw;">
+            <label>Primary mood</label>
+            <div class="btn-group">
+                <button type="button"
+                        class="btn btn-secondary dropdown-toggle"
+                        data-bs-toggle="dropdown">
+                    @primaryMood
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><button class="dropdown-item" type="button">angry</button></li>
-                    <li><button class="dropdown-item" type="button">happy</button></li>
-                    <li><button class="dropdown-item" type="button">sad</button></li>
-                </ul>
-            </div>
-            
-            <div class="btn-group" align="center" style="margin-left: 1vw">
-                <button type="button" @bind = "mood1" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    mood 1
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><button class="dropdown-item" type="button">angry</button></li>
-                    <li><button class="dropdown-item" type="button">happy</button></li>
-                    <li><button class="dropdown-item" type="button">sad</button></li>
-                </ul>
-            </div>
-            
-            <div class="btn-group" align="right" style="margin-left: 1vw">
-                <button type="button" @bind = "mood2" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    mood 2
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><button class="dropdown-item" type="button">angry</button></li>
-                    <li><button class="dropdown-item" type="button">happy</button></li>
-                    <li><button class="dropdown-item" type="button">sad</button></li>
+
+                <ul class="dropdown-menu">
+                    @foreach (var mood in moods)
+                    {
+                        <li>
+                            <button class="dropdown-item"
+                                    type="button"
+                                    @onclick="() => primaryMood = mood">
+                                @mood
+                            </button>
+                        </li>
+                    }
                 </ul>
             </div>
         </div>
-        <div style="margin-top: 1vw; margin-left: 1vw">
-            <div><label for = "description">Write your content here <br/></label></div>
-            <textarea type = "text" id = "description" @bind = "description" style ="width:80%; margin-top:1vw; height:15vw; font-family:'Times New Roman', Times, serif;"/>
+
+        <!-- Secondary Mood 1 -->
+        <div style="margin-top:1vw; margin-left:1vw;">
+            <label>Secondary mood 1</label>
+            <div class="btn-group">
+                <button type="button"
+                        class="btn btn-secondary dropdown-toggle"
+                        data-bs-toggle="dropdown">
+                    @mood1
+                </button>
+
+                <ul class="dropdown-menu">
+                    @foreach (var mood in moods)
+                    {
+                        <li>
+                            <button class="dropdown-item"
+                                    type="button"
+                                    @onclick="() => mood1 = mood">
+                                @mood
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </div>
         </div>
-        <div align="right" style="margin-top: 2vw; margin-left: 50%">
-            <button @onclick="saveJournal">Save</button>
+
+        <!-- Secondary Mood 2 -->
+        <div style="margin-top:1vw; margin-left:1vw;">
+            <label>Secondary mood 2</label>
+            <div class="btn-group">
+                <button type="button"
+                        class="btn btn-secondary dropdown-toggle"
+                        data-bs-toggle="dropdown">
+                    @mood2
+                </button>
+
+                <ul class="dropdown-menu">
+                    @foreach (var mood in moods)
+                    {
+                        <li>
+                            <button class="dropdown-item"
+                                    type="button"
+                                    @onclick="() => mood2 = mood">
+                                @mood
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </div>
         </div>
-        
+
     </div>
+
+    <!-- Journal Content -->
+    <div style="margin-top:1vw; margin-left:1vw;">
+        <label>Write your content here</label><br />
+        <textarea @bind="description"
+                  style="
+                        width:80%;
+                        margin-top:1vw;
+                        height:15vw;
+                        font-family:'Times New Roman', Times, serif;
+                  ">
+        </textarea>
+    </div>
+
+    <!-- Save Button -->
+    <div style="margin-top:2vw; margin-left:auto; margin-right:5vw;">
+        <button class="btn btn-success" @onclick="saveJournal">
+            Save
+        </button>
+    </div>
+
 </div>
 
-
-@code{
-
+@code {
     private string title;
-    private string primaryMood, mood1, mood2;
+    private string primaryMood = "Select mood";
+    private string mood1 = "Select mood";
+    private string mood2 = "Select mood";
     private string description;
+
+    private List<string> moods = new()
+    {
+        "happy", "sad", "angry", "amused", "funny"
+    };
 
     void saveJournal()
     {
-        
+        // Save logic here
     }
-
 }
-
