@@ -13,15 +13,12 @@
         overflow:hidden;
      ">
 
-    <!-- Header -->
     <div class="header-message" style="margin-top:3vw; margin-left:1vw;">
         <h1 style="color:gold;">Write today's dainiki</h1>
     </div>
 
-    <!-- Input Fields -->
     <div class="dainiki-input-fields">
 
-        <!-- Title -->
         <div class="title-input" style="margin-left:1vw; margin-top:1vw;">
             <label>Title</label><br />
             <input placeholder="Title"
@@ -29,7 +26,6 @@
                    style="width:20%; padding:8px; font-family:'Times New Roman', Times, serif;" />
         </div>
 
-        <!-- Primary Mood -->
         <div style="margin-top:1vw; margin-left:1vw;">
             <label>Primary mood</label>
             <div class="btn-group">
@@ -54,7 +50,6 @@
             </div>
         </div>
 
-        <!-- Secondary Mood 1 -->
         <div style="margin-top:1vw; margin-left:1vw;">
             <label>Secondary mood 1</label>
             <div class="btn-group">
@@ -79,7 +74,6 @@
             </div>
         </div>
 
-        <!-- Secondary Mood 2 -->
         <div style="margin-top:1vw; margin-left:1vw;">
             <label>Secondary mood 2</label>
             <div class="btn-group">
@@ -104,7 +98,6 @@
             </div>
         </div>
 
-        <!-- Tags -->
         <div style="margin-top:1vw; margin-left:1vw;">
             <label>Tags</label>
 
@@ -134,7 +127,6 @@
 
     </div>
 
-    <!-- Journal Content -->
     <div style="margin-top:1vw; margin-left:1vw;">
         <label>Write your content here</label><br />
         <textarea @bind="description"
@@ -147,7 +139,6 @@
         </textarea>
     </div>
 
-    <!-- Save Button -->
     <div style="margin-top:2vw; margin-left:auto; margin-right:5vw;">
         <button class="btn btn-success" @onclick="saveJournal">
             Save
@@ -190,6 +181,5 @@
 
     void saveJournal()
     {
-        
     }
 }
