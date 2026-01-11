@@ -1,32 +1,145 @@
-@page "/journals";
+@page "/journals"
 
-<div class="journals" style="
-        min-height:100vh;
-        background-color:#2b2b2b;
-        background-image:linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6));
-        display:flex;
-        flex-direction:column;
-        align-content: stretch;
-        justify-content:flex-start;
-        font-family:'Times New Roman', Times, serif;
-        color:white;
-        overflow: hidden;
-     ">
+<div class="page-header">
     <div>
-        <div class = "dropdown" style="margin-top:1vw; margin-left: 1vw" align="left">
-            <div class="btn-group" align="left" style="margin-left: 1vw">
-                <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    change view
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><button class="dropdown-item" type="button">Calender view</button></li>
-                    <li><button class="dropdown-item" type="button">List view</button></li>
-                </ul>
-            </div>
+        <h1 class="page-title">@pageTitle</h1>
+    </div>
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <label class="form-label">@viewLabel</label>
+            <select class="select" @bind="viewChoice">
+                @foreach (var view in viewOptions)
+                {
+                    <option value="@view">@view</option>
+                }
+            </select>
         </div>
-    </div>    
-    <hr/>
-    <div>
-        <div style="margin-left: 1vw; margin-top: 1vw"><h3>Previous journals</h3></div>
+        <div class="toolbar-group">
+            <label class="form-label">@searchLabel</label>
+            <input class="input" placeholder="Search title or content" @bind="searchTerm" />
+        </div>
     </div>
 </div>
+
+<details class="filter-panel">
+    <summary>@filterLabel</summary>
+    <div class="form-grid" style="margin-top: 12px;">
+        <div class="form-field">
+            <label class="form-label">Date range</label>
+            <div class="btn-row">
+                <input class="input" type="date" @bind="startDate" />
+                <input class="input" type="date" @bind="endDate" />
+            </div>
+        </div>
+        <div class="form-field">
+            <label class="form-label">Primary mood</label>
+            <select class="select" @bind="selectedMood">
+                <option value="">Any</option>
+                @foreach (var mood in allMoods)
+                {
+                    <option value="@mood">@mood</option>
+                }
+            </select>
+        </div>
+        <div class="form-field">
+            <label class="form-label">Tags</label>
+            <select class="select" @bind="selectedTag">
+                <option value="">Any</option>
+                @foreach (var tag in allTags)
+                {
+                    <option value="@tag">@tag</option>
+                }
+            </select>
+        </div>
+        <div class="form-field">
+            <label class="form-label">Pinned only</label>
+            <label class="toggle">
+                <input type="checkbox" @bind="pinnedOnly" />
+                Show starred entries
+            </label>
+        </div>
+    </div>
+    <div style="margin-top: 12px;">
+        <button class="btn btn-secondary" type="button">@resetLabel</button>
+    </div>
+</details>
+
+<div class="card">
+    <div class="table-list">
+        @foreach (var entry in entries)
+        {
+            <div class="list-item">
+                <div>
+                    <NavLink class="timeline-title" href="@($"journals/{entry.Id}")">@entry.Title</NavLink>
+                    <div class="list-meta">@entry.DateDisplay · @entry.Mood · @entry.Tags</div>
+                </div>
+                <div class="btn-row">
+                    <NavLink class="btn btn-ghost" href="newjournal">@editLabel</NavLink>
+                    <button class="btn btn-danger" type="button">@deleteLabel</button>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="btn-row" style="justify-content: space-between; margin-top: 16px;">
+        <button class="btn btn-ghost" type="button" disabled="@prevDisabled">@prevLabel</button>
+        <span class="list-meta">@pageMeta</span>
+        <button class="btn btn-ghost" type="button" disabled="@nextDisabled">@nextLabel</button>
+    </div>
+</div>
+
+<div class="journal-footer">
+    <NavLink class="btn btn-secondary" href="export">@exportLabel</NavLink>
+</div>
+
+@code {
+    private string pageTitle = "Previous journals";
+    private string viewLabel = "Change view";
+    private string searchLabel = "Search";
+    private string filterLabel = "Filters";
+    private string resetLabel = "Reset filters";
+    private string editLabel = "Edit";
+    private string deleteLabel = "Delete";
+    private string prevLabel = "Previous";
+    private string nextLabel = "Next";
+    private string exportLabel = "Export as pdf";
+    private string pageMeta = "Page 1 of 2";
+
+    private string viewChoice = "List";
+    private string searchTerm = string.Empty;
+    private string selectedMood = string.Empty;
+    private string selectedTag = string.Empty;
+    private DateTime? startDate;
+    private DateTime? endDate;
+    private bool pinnedOnly;
+
+    private bool prevDisabled = true;
+    private bool nextDisabled;
+
+    private List<string> viewOptions = new()
+    {
+        "List", "Calendar", "Tags"
+    };
+
+    private List<string> allMoods = new()
+    {
+        "Happy", "Excited", "Relaxed", "Grateful", "Confident",
+        "Calm", "Thoughtful", "Curious", "Nostalgic", "Bored",
+        "Sad", "Angry", "Stressed", "Lonely", "Anxious"
+    };
+
+    private List<string> allTags = new()
+    {
+        "Work", "Health", "Travel", "Fitness", "Reflection", "Family", "Studies", "Projects"
+    };
+
+    private List<JournalSummary> entries = new()
+    {
+        new JournalSummary(1, "Journal 1", "Jan 06, 2026", "Relaxed", "Work, Reflection"),
+        new JournalSummary(2, "Journal 2", "Jan 05, 2026", "Grateful", "Family"),
+        new JournalSummary(3, "Journal 3", "Jan 04, 2026", "Focused", "Projects"),
+        new JournalSummary(4, "Journal 4", "Jan 03, 2026", "Calm", "Health")
+    };
+
+    private record JournalSummary(int Id, string Title, string DateDisplay, string Mood, string Tags);
+}

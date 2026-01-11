@@ -1,0 +1,86 @@
+@page "/export"
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Export journals</h1>
+        <p class="page-subtitle">Generate a PDF summary of your entries for a chosen date range.</p>
+    </div>
+    <div class="btn-row">
+        <button class="btn btn-primary" @onclick="@ExportPdf">Export PDF</button>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card reveal" style="--delay: 0.05s;">
+        <h3 class="section-title">Date range</h3>
+        <div class="form-field">
+            <label class="form-label">From</label>
+            <input class="input" type="date" @bind="startDate" />
+        </div>
+        <div class="form-field">
+            <label class="form-label">To</label>
+            <input class="input" type="date" @bind="endDate" />
+        </div>
+        <div class="form-field">
+            <label class="form-label">Include</label>
+            <label class="toggle"><input type="checkbox" @bind="includeMood" /> Mood tracking</label>
+            <label class="toggle"><input type="checkbox" @bind="includeTags" /> Tags & categories</label>
+            <label class="toggle"><input type="checkbox" @bind="includeAnalytics" /> Analytics summary</label>
+        </div>
+    </div>
+
+    <div class="card reveal" style="--delay: 0.1s;">
+        <h3 class="section-title">Preview</h3>
+        <div class="table-list">
+            <div class="list-item">
+                <div>
+                    <div class="timeline-title">Selected range</div>
+                    <div class="list-meta">@PreviewRange</div>
+                </div>
+                <span class="badge">PDF</span>
+            </div>
+            <div class="list-item">
+                <div>
+                    <div class="timeline-title">Included sections</div>
+                    <div class="list-meta">@PreviewSections</div>
+                </div>
+            </div>
+        </div>
+        <p style="margin-top: 12px; color: var(--muted);">
+            Exported files remain on this device. No cloud sync by default.
+        </p>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <p style="color: var(--accent-3);">@message</p>
+}
+
+@code {
+    private DateTime startDate = DateTime.Today.AddDays(-7);
+    private DateTime endDate = DateTime.Today;
+    private bool includeMood = true;
+    private bool includeTags = true;
+    private bool includeAnalytics = true;
+    private string? message;
+
+    private string PreviewRange => $"{startDate:MMM dd, yyyy} - {endDate:MMM dd, yyyy}";
+
+    private string PreviewSections
+    {
+        get
+        {
+            var sections = new List<string>();
+            if (includeMood) sections.Add("Mood tracking");
+            if (includeTags) sections.Add("Tags");
+            if (includeAnalytics) sections.Add("Analytics");
+            return sections.Count == 0 ? "None" : string.Join(", ", sections);
+        }
+    }
+
+    private void ExportPdf()
+    {
+        message = "PDF export queued. (UI only)";
+    }
+}

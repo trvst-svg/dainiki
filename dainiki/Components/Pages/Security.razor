@@ -1,0 +1,59 @@
+@page "/security"
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Security & privacy</h1>
+        <p class="page-subtitle">Protect your journal with a password or PIN, and control app locking.</p>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card reveal" style="--delay: 0.05s;">
+        <h3 class="section-title">Set password</h3>
+        <div class="form-field">
+            <label class="form-label">New password</label>
+            <input class="input" type="password" placeholder="Create a strong password" />
+        </div>
+        <div class="form-field">
+            <label class="form-label">Confirm password</label>
+            <input class="input" type="password" placeholder="Re-enter password" />
+        </div>
+        <button class="btn btn-primary" @onclick="SaveSecurity">Save password</button>
+    </div>
+
+    <div class="card reveal" style="--delay: 0.1s;">
+        <h3 class="section-title">PIN & lock settings</h3>
+        <div class="form-field">
+            <label class="form-label">PIN code</label>
+            <input class="input" type="password" placeholder="4-digit PIN" />
+        </div>
+        <div class="form-field">
+            <label class="form-label">Auto-lock</label>
+            <label class="toggle"><input type="checkbox" @bind="autoLock" /> Lock after 2 minutes idle</label>
+        </div>
+        <div class="form-field">
+            <label class="form-label">Privacy mode</label>
+            <label class="toggle"><input type="checkbox" @bind="hidePreview" /> Hide journal previews</label>
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-secondary" @onclick="SaveSecurity">Save settings</button>
+            <button class="btn btn-danger" type="button">Lock now</button>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <p style="color: var(--accent-3);">@message</p>
+}
+
+@code {
+    private bool autoLock = true;
+    private bool hidePreview;
+    private string? message;
+
+    private void SaveSecurity()
+    {
+        message = "Security settings saved. (UI only)";
+    }
+}

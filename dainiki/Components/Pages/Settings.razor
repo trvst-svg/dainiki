@@ -1,2 +1,98 @@
 @page "/settings"
-<h1>Settings</h1>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">@pageTitle</h1>
+    </div>
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <label class="form-label">@themeLabel</label>
+            <select class="select">
+                @foreach (var theme in themes)
+                {
+                    <option>@theme</option>
+                }
+            </select>
+        </div>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card reveal" style="--delay: 0.05s;">
+        <h3 class="section-title">@securityTitle</h3>
+        <p class="auth-helper">@securityDescription</p>
+        <NavLink class="btn btn-secondary" href="security">@openSecurityLabel</NavLink>
+    </div>
+    <div class="card reveal" style="--delay: 0.1s;">
+        <h3 class="section-title">@exportTitle</h3>
+        <p class="auth-helper">@exportDescription</p>
+        <NavLink class="btn btn-secondary" href="export">@openExportLabel</NavLink>
+    </div>
+</div>
+
+<div class="card reveal" style="--delay: 0.15s;">
+    <h3 class="section-title">@preferencesTitle</h3>
+    <div class="form-grid">
+        <div class="form-field">
+            <label class="form-label">@defaultViewLabel</label>
+            <select class="select">
+                @foreach (var view in defaultViews)
+                {
+                    <option>@view</option>
+                }
+            </select>
+        </div>
+        <div class="form-field">
+            <label class="form-label">@backupLabel</label>
+            <select class="select">
+                @foreach (var backup in backupOptions)
+                {
+                    <option>@backup</option>
+                }
+            </select>
+        </div>
+        <div class="form-field">
+            <label class="form-label">@dataLocationLabel</label>
+            <input class="input" value="@dataLocationValue" disabled />
+        </div>
+    </div>
+</div>
+
+@code {
+    private string pageTitle = "Settings";
+    private string themeLabel = "Change theme";
+    private List<string> themes = new()
+    {
+        "Classic",
+        "Midnight",
+        "Sunrise"
+    };
+
+    private string securityTitle = "Security";
+    private string securityDescription = "Manage password, PIN, and privacy modes.";
+    private string openSecurityLabel = "Open security";
+
+    private string exportTitle = "Export";
+    private string exportDescription = "Generate PDF reports by date range.";
+    private string openExportLabel = "Open export";
+
+    private string preferencesTitle = "Preferences";
+    private string defaultViewLabel = "Default view";
+    private List<string> defaultViews = new()
+    {
+        "Home",
+        "Journals",
+        "Dashboard"
+    };
+
+    private string backupLabel = "Auto backup";
+    private List<string> backupOptions = new()
+    {
+        "Off",
+        "Weekly",
+        "Monthly"
+    };
+
+    private string dataLocationLabel = "Data location";
+    private string dataLocationValue = "Local SQLite";
+}

@@ -1,46 +1,38 @@
 @page "/login"
+@layout AuthLayout
 @inject NavigationManager Navigation
-<div class="login-page"
-     style="
-        min-height:100vh;
-        background-color:#2b2b2b;
-        background-image:linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6));
-        display:flex;
-        flex-direction:column;
-        justify-content:center;
-        align-items:center;
-        font-family:'Times New Roman', Times, serif;
-        color:white;
-        overflow: hidden;
-     ">
 
-    <div class="welcome-message" align="center">
-        <h1 style="color:white; margin-bottom:20px; font-size:3vw">
-            Welcome To Dainiki
-        </h1>
-        <h1 style="color:gold; margin-bottom:20px;">Login</h1>
+<div class="auth-shell">
+    <div class="auth-card reveal">
+        <h1 class="auth-title">Welcome to Dainiki</h1>
+
+        <form @onsubmit="loginValidator">
+            <div class="form-field">
+                <label class="form-label" for="username">Username</label>
+                <input class="input" type="text" id="username" @bind="username" placeholder="Enter your username" />
+            </div>
+
+            <div class="form-field">
+                <label class="form-label" for="password">Password</label>
+                <input class="input" type="password" id="password" @bind="password" placeholder="Enter your password" />
+            </div>
+
+            <div class="btn-row" style="margin-top: 18px; justify-content: center;">
+                <button class="btn btn-primary" type="submit">Login</button>
+            </div>
+        </form>
+
+        <div class="auth-footer">
+            <span class="auth-helper">New here?</span>
+            <NavLink href="signup">Signup</NavLink>
+        </div>
     </div>
-
-    <form @onsubmit="loginValidator">
-        <div class="form-group" style="margin-bottom:15px; width:300px;">
-            <label for="username" style="display:block; margin-bottom:5px;">Username</label>
-            <input type = "text" id = "username" @bind = "username" name = "username" placeholder = "Username" style = " width:100%; padding:8px; font-family:'Times New Roman', Times, serif;">
-        </div>
-
-        <div class="form-group" style="margin-bottom:15px; width:300px;">
-            <label for="password" style="display:block; margin-bottom:5px;">Password</label>
-            <input type = "password" @bind = "password" id = "password" placeholder= "Password" style ="width:100%; padding:8px; font-family:'Times New Roman', Times, serif;">
-        </div>
-        <div class = "login-button" align="center">
-        <button class = "btn btn-primary" type = "submit">Login</button>
-        </div>
-    </form>
-    
 </div>
+
 @code{
-    private string username;
-    private string password;
-    private string message;
+    private string username = string.Empty;
+    private string password = string.Empty;
+    private string message = string.Empty;
 
     async Task loginValidator()
     {
@@ -53,6 +45,5 @@
         message = "logged in successfully";
         Console.WriteLine("Login method called");
         Navigation.NavigateTo("home");
-
     }
 }

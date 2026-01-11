@@ -1,0 +1,85 @@
+@page "/tags"
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Tags & categories</h1>
+        <p class="page-subtitle">Manage custom tags and keep your journal organized.</p>
+    </div>
+    <div class="btn-row">
+        <button class="btn btn-primary" @onclick="AddTag">Add tag</button>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card reveal" style="--delay: 0.05s;">
+        <h3 class="section-title">Popular tags</h3>
+        <div class="chip-group">
+            @foreach (var tag in tags)
+            {
+                <button class="chip @(tag.Selected ? "chip--active" : "")" @onclick="() => ToggleTag(tag)">@tag.Label</button>
+            }
+        </div>
+    </div>
+
+    <div class="card reveal" style="--delay: 0.1s;">
+        <h3 class="section-title">Categories</h3>
+        <div class="table-list">
+            @foreach (var category in categories)
+            {
+                <div class="list-item">
+                    <div>
+                        <div class="timeline-title">@category.Name</div>
+                        <div class="list-meta">@category.Description</div>
+                    </div>
+                    <span class="badge">@category.Count entries</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <p style="color: var(--accent-3);">@message</p>
+}
+
+@code {
+    private string? message;
+
+    private List<TagItem> tags = new()
+    {
+        new TagItem("Work"), new TagItem("Career"), new TagItem("Studies"), new TagItem("Family"),
+        new TagItem("Friends"), new TagItem("Relationships"), new TagItem("Health"), new TagItem("Fitness"),
+        new TagItem("Personal Growth"), new TagItem("Self-care"), new TagItem("Travel"), new TagItem("Reflection")
+    };
+
+    private List<CategoryItem> categories = new()
+    {
+        new CategoryItem("Positive", "Happy, excited, relaxed", 24),
+        new CategoryItem("Neutral", "Calm, thoughtful, curious", 18),
+        new CategoryItem("Negative", "Sad, stressed, anxious", 10)
+    };
+
+    private void ToggleTag(TagItem tag)
+    {
+        tag.Selected = !tag.Selected;
+    }
+
+    private void AddTag()
+    {
+        message = "Add tag form coming soon (UI only).";
+    }
+
+    private class TagItem
+    {
+        public TagItem(string label)
+        {
+            Label = label;
+        }
+
+        public string Label { get; }
+        public bool Selected { get; set; }
+    }
+
+    private record CategoryItem(string Name, string Description, int Count);
+}

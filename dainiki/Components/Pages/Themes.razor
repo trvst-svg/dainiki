@@ -1,0 +1,74 @@
+@page "/themes"
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Theme studio</h1>
+        <p class="page-subtitle">Customize your journaling atmosphere with light, dark, or dusk palettes.</p>
+    </div>
+</div>
+
+<div class="grid-3">
+    @foreach (var theme in themes)
+    {
+        <div class="card reveal" style="--delay: 0.05s;">
+            <div class="card-header">
+                <h3 class="card-title">@theme.Name</h3>
+                @if (theme.IsActive)
+                {
+                    <span class="badge">Active</span>
+                }
+            </div>
+            <div style="display:flex; gap:8px; margin-bottom: 12px;">
+                @foreach (var swatch in theme.Swatches)
+                {
+                    <span style="width:24px; height:24px; border-radius:8px; background:@swatch; display:inline-block;"></span>
+                }
+            </div>
+            <p class="auth-helper">@theme.Description</p>
+            <button class="btn btn-secondary" @onclick="() => SetTheme(theme)">Apply theme</button>
+        </div>
+    }
+</div>
+
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <p style="color: var(--accent-3);">@message</p>
+}
+
+@code {
+    private string? message;
+
+    private List<ThemeOption> themes = new()
+    {
+        new ThemeOption("Nocturne", "Deep charcoal with gold accents.", new[] { "#0f0e0b", "#1a1813", "#f6c445" }, true),
+        new ThemeOption("Daylight", "Warm parchment with soft neutrals.", new[] { "#f4efe2", "#d8cdb8", "#7a6650" }),
+        new ThemeOption("Dusk", "Muted teal with amber highlights.", new[] { "#102328", "#1a3a3f", "#f29e7d" })
+    };
+
+    private void SetTheme(ThemeOption theme)
+    {
+        foreach (var option in themes)
+        {
+            option.IsActive = false;
+        }
+
+        theme.IsActive = true;
+        message = $"Theme '{theme.Name}' applied. (UI only)";
+    }
+
+    private class ThemeOption
+    {
+        public ThemeOption(string name, string description, string[] swatches, bool isActive = false)
+        {
+            Name = name;
+            Description = description;
+            Swatches = swatches;
+            IsActive = isActive;
+        }
+
+        public string Name { get; }
+        public string Description { get; }
+        public string[] Swatches { get; }
+        public bool IsActive { get; set; }
+    }
+}

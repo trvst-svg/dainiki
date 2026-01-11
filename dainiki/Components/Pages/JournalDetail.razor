@@ -1,0 +1,90 @@
+@page "/journals/{Id:int}"
+@inject NavigationManager Navigation
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Journal entry</h1>
+        <p class="page-subtitle">Entry details, mood tracking, and tags.</p>
+    </div>
+    <div class="btn-row">
+        <button class="btn btn-secondary" @onclick='() => Navigation.NavigateTo("/journals")'>Back to list</button>
+        <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/newjournal")'>Edit entry</button>
+    </div>
+</div>
+
+@if (entry == null)
+{
+    <div class="card">
+        <p>Entry not found. (UI only)</p>
+    </div>
+}
+else
+{
+    <div class="grid-2">
+        <div class="card reveal" style="--delay: 0.05s;">
+            <div class="card-header">
+                <h3 class="card-title">@entry.Title</h3>
+                <span class="badge">@entry.Date</span>
+            </div>
+            <p style="color: var(--muted);">@entry.Content</p>
+        </div>
+
+        <div class="card reveal" style="--delay: 0.1s;">
+            <h3 class="section-title">Mood tracking</h3>
+            <div class="table-list">
+                <div class="list-item">
+                    <div>
+                        <div class="timeline-title">Primary mood</div>
+                        <div class="list-meta">@entry.PrimaryMood</div>
+                    </div>
+                    <span class="badge">Required</span>
+                </div>
+                <div class="list-item">
+                    <div>
+                        <div class="timeline-title">Secondary moods</div>
+                        <div class="list-meta">@entry.SecondaryMoods</div>
+                    </div>
+                </div>
+                <div class="list-item">
+                    <div>
+                        <div class="timeline-title">Category</div>
+                        <div class="list-meta">@entry.Category</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card reveal" style="--delay: 0.15s;">
+        <h3 class="section-title">Tags</h3>
+        <div class="chip-group">
+            @foreach (var tag in entry.Tags)
+            {
+                <span class="chip chip--active">@tag</span>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private JournalEntry? entry;
+
+    protected override void OnParametersSet()
+    {
+        entry = sampleEntries.FirstOrDefault(e => e.Id == Id);
+    }
+
+    private List<JournalEntry> sampleEntries = new()
+    {
+        new JournalEntry(1, "Morning clarity", "Jan 06, 2026", "Relaxed", "Curious, Thoughtful", "Positive",
+            new[] { "Work", "Reflection" },
+            "Wrote down priorities and mapped the day. Feeling calm and clear."),
+        new JournalEntry(2, "Evening reset", "Jan 05, 2026", "Grateful", "Calm", "Positive",
+            new[] { "Family", "Health" },
+            "Slow dinner and a quiet walk. Reset the pace for tomorrow.")
+    };
+
+    private record JournalEntry(int Id, string Title, string Date, string PrimaryMood, string SecondaryMoods, string Category, string[] Tags, string Content);
+}

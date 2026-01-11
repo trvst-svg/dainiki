@@ -1,0 +1,99 @@
+@page "/dashboard"
+@page "/analytics"
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">@pageTitle</h1>
+        <p class="page-subtitle">@pageSubtitle</p>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="dashboard-main">
+        <div class="card chart-box">
+            <h3 class="section-title">@consistencyLabel</h3>
+            <div class="chart-surface">
+                <svg viewBox="0 0 120 80" preserveAspectRatio="none">
+                    <polyline class="chart-line light" points="0,70 20,52 40,58 60,35 80,45 100,28 120,34"></polyline>
+                    <polyline class="chart-line" points="0,62 20,58 40,46 60,24 80,30 100,18 120,22"></polyline>
+                </svg>
+            </div>
+        </div>
+
+        <div class="card chart-box">
+            <h3 class="section-title">@wordCountLabel</h3>
+            <div class="chart-surface">
+                <svg viewBox="0 0 120 80" preserveAspectRatio="none">
+                    <polyline class="chart-line light" points="0,68 20,60 40,44 60,52 80,32 100,40 120,26"></polyline>
+                    <polyline class="chart-line" points="0,72 20,64 40,52 60,36 80,44 100,30 120,36"></polyline>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-side">
+        <div class="stat-box">
+            <div class="stat-label">@highestWordCountLabel</div>
+            <div class="stat-value">@highestWordCountValue</div>
+        </div>
+
+        <div class="stat-box">
+            <div class="stat-label">@highestStreakLabel</div>
+            <div class="streak-preview">
+                <div class="streak-image">Streak image</div>
+                <div>
+                    <div class="stat-value">@highestStreakValue</div>
+                    <div class="stat-meta">@highestStreakRange</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-box">
+            <div class="stat-label">@frequentMoodsLabel</div>
+            <ol class="stat-list">
+                @foreach (var mood in frequentMoods)
+                {
+                    <li>@mood</li>
+                }
+            </ol>
+        </div>
+
+        <div class="stat-box">
+            <div class="stat-label">@usedTagsLabel</div>
+            <ol class="stat-list">
+                @foreach (var tag in usedTags)
+                {
+                    <li>@tag</li>
+                }
+            </ol>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string pageTitle = "Dashboard";
+    private string pageSubtitle = "Track consistency, streaks, and mood patterns.";
+    private string consistencyLabel = "Journal consistency chart";
+    private string wordCountLabel = "Word count history";
+
+    private string highestWordCountLabel = "Highest word count";
+    private string highestWordCountValue = "Journal 1";
+
+    private string highestStreakLabel = "Highest streak till date";
+    private string highestStreakValue = "10 days";
+    private string highestStreakRange = "Oct 01 to Oct 10";
+
+    private string frequentMoodsLabel = "Most frequent moods";
+    private List<string> frequentMoods = new()
+    {
+        "Mood1",
+        "Mood2"
+    };
+
+    private string usedTagsLabel = "Most used tags";
+    private List<string> usedTags = new()
+    {
+        "tag1",
+        "tag2"
+    };
+}

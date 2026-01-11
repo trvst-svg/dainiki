@@ -1,0 +1,122 @@
+@page "/calendar"
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Calendar view</h1>
+        <p class="page-subtitle">Navigate entries by date, spot streaks, and revisit reflections.</p>
+    </div>
+    <div class="btn-row">
+        <button class="btn btn-secondary" @onclick="@GoPrevious">Previous</button>
+        <button class="btn btn-secondary" @onclick="@GoNext">Next</button>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card reveal" style="--delay: 0.05s;">
+        <div class="card-header">
+            <h3 class="card-title">@monthLabel</h3>
+            <span class="badge">Entries: @entries.Count</span>
+        </div>
+
+        <div class="calendar" style="margin-top: 16px;">
+            @foreach (var dayName in weekDays)
+            {
+                <div class="calendar-day calendar-day--empty" style="text-align:center; font-size:0.75rem; color: var(--muted);">@dayName</div>
+            }
+            @foreach (var day in calendarDays)
+            {
+                if (day.IsPlaceholder)
+                {
+                    <div class="calendar-day calendar-day--empty"></div>
+                }
+                else
+                {
+                    <div class="calendar-day">
+                        <div class="calendar-day__num">@day.DayNumber</div>
+                        @if (day.HasEntry)
+                        {
+                            <span class="badge">Entry</span>
+                        }
+                        else
+                        {
+                            <span class="list-meta">No entry</span>
+                        }
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <div class="card reveal" style="--delay: 0.1s;">
+        <h3 class="section-title">This week</h3>
+        <div class="timeline">
+            @foreach (var entry in entries)
+            {
+                <div class="timeline-card">
+                    <div class="timeline-title">@entry.Title</div>
+                    <div class="list-meta">@entry.Date · @entry.Mood</div>
+                    <div style="margin-top: 6px; color: var(--muted);">@entry.Preview</div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private DateTime month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private List<CalendarDay> calendarDays = new();
+
+    private string[] weekDays = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+
+    private List<CalendarEntry> entries = new()
+    {
+        new CalendarEntry("Mon, Jan 6", "Relaxed", "A slow sunrise", "Noticed the morning light and planned the day."),
+        new CalendarEntry("Sun, Jan 5", "Focused", "Sprint wrap", "Reviewed tasks and outlined the next steps."),
+        new CalendarEntry("Sat, Jan 4", "Grateful", "Evening reset", "Walked, listened to music, and recharged.")
+    };
+
+    private string monthLabel => month.ToString("MMMM yyyy");
+
+    protected override void OnInitialized()
+    {
+        BuildCalendar();
+    }
+
+    private void BuildCalendar()
+    {
+        calendarDays.Clear();
+        var firstDayOfMonth = new DateTime(month.Year, month.Month, 1);
+        var daysInMonth = DateTime.DaysInMonth(month.Year, month.Month);
+        var offset = (int)firstDayOfMonth.DayOfWeek;
+
+        for (var i = 0; i < offset; i++)
+        {
+            calendarDays.Add(CalendarDay.Placeholder());
+        }
+
+        for (var day = 1; day <= daysInMonth; day++)
+        {
+            var hasEntry = day % 3 == 0 || day == DateTime.Today.Day;
+            calendarDays.Add(new CalendarDay(day, hasEntry));
+        }
+    }
+
+    private void GoPrevious()
+    {
+        month = month.AddMonths(-1);
+        BuildCalendar();
+    }
+
+    private void GoNext()
+    {
+        month = month.AddMonths(1);
+        BuildCalendar();
+    }
+
+    private record CalendarEntry(string Date, string Mood, string Title, string Preview);
+
+    private record CalendarDay(int DayNumber, bool HasEntry, bool IsPlaceholder = false)
+    {
+        public static CalendarDay Placeholder() => new CalendarDay(0, false, true);
+    }
+}
