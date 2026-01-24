@@ -4,5 +4,5 @@ public class Users
 {
     public string username { get; set; }
     public string password { get; set; }
-    public ICollection<>
+    public ICollection<Journal> Journals { get; set; }
 }
