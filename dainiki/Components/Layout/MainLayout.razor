@@ -1,6 +1,9 @@
 ﻿@inherits LayoutComponentBase
+@implements IDisposable
+@inject dainiki.Components.Services.AppState AppState
+@inject NavigationManager Navigation
 
-<div class="app-shell">
+<div class="app-shell @ThemeClass">
     <aside class="side-nav">
         <div class="side-nav__brand">
             <div class="brand-mark">D</div>
@@ -16,3 +19,29 @@
         </main>
     </div>
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        AppState.OnChange += StateHasChanged;
+
+        if (!AppState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    private string ThemeClass
+    {
+        get
+        {
+            var theme = AppState.CurrentUser?.theme;
+            return string.IsNullOrWhiteSpace(theme) ? string.Empty : $"theme-{theme.ToLowerInvariant()}";
+        }
+    }
+
+    public void Dispose()
+    {
+        AppState.OnChange -= StateHasChanged;
+    }
+}
