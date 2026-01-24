@@ -1,5 +1,7 @@
 @page "/journals/{Id:int}"
 @inject NavigationManager Navigation
+@inject JournalService JournalService
+@inject AppState AppState
 
 <div class="page-header">
     <div>
@@ -8,14 +10,14 @@
     </div>
     <div class="btn-row">
         <button class="btn btn-secondary" @onclick='() => Navigation.NavigateTo("/journals")'>Back to list</button>
-        <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/newjournal")'>Edit entry</button>
+        <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo($"/newjournal/{Id}")'>Edit entry</button>
     </div>
 </div>
 
 @if (entry == null)
 {
     <div class="card">
-        <p>Entry not found. (UI only)</p>
+        <p>Entry not found.</p>
     </div>
 }
 else
@@ -26,7 +28,7 @@ else
                 <h3 class="card-title">@entry.Title</h3>
                 <span class="badge">@entry.Date</span>
             </div>
-            <p style="color: var(--muted);">@entry.Content</p>
+            <div class="ql-editor markdown-body">@entry.ContentHtml</div>
         </div>
 
         <div class="card reveal" style="--delay: 0.1s;">
@@ -71,20 +73,51 @@ else
 
     private JournalEntry? entry;
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        entry = sampleEntries.FirstOrDefault(e => e.Id == Id);
+        if (AppState.CurrentUser == null)
+        {
+            entry = null;
+            return;
+        }
+
+        var journal = await JournalService.GetJournalAsync(Id, AppState.CurrentUser.username);
+        if (journal == null)
+        {
+            entry = null;
+            return;
+        }
+
+        var primaryMood = journal.JournalMoods.FirstOrDefault(mood => mood.mood_role == "Primary")?.mood?.mood_name ?? "None";
+        var secondary = journal.JournalMoods
+            .Where(mood => mood.mood_role == "Secondary")
+            .Select(mood => mood.mood?.mood_name)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .ToList();
+
+        var tags = journal.JournalTags
+            .Select(tag => tag.tag?.tag_name)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .ToArray();
+
+        entry = new JournalEntry(
+            journal.journal_id,
+            journal.journal_title,
+            journal.journal_date.ToString("MMM dd, yyyy"),
+            primaryMood,
+            secondary.Count == 0 ? "None" : string.Join(", ", secondary),
+            journal.category?.category_name ?? "Uncategorized",
+            tags,
+            new MarkupString(journal.journal_content_url));
     }
 
-    private List<JournalEntry> sampleEntries = new()
-    {
-        new JournalEntry(1, "Morning clarity", "Jan 06, 2026", "Relaxed", "Curious, Thoughtful", "Positive",
-            new[] { "Work", "Reflection" },
-            "Wrote down priorities and mapped the day. Feeling calm and clear."),
-        new JournalEntry(2, "Evening reset", "Jan 05, 2026", "Grateful", "Calm", "Positive",
-            new[] { "Family", "Health" },
-            "Slow dinner and a quiet walk. Reset the pace for tomorrow.")
-    };
-
-    private record JournalEntry(int Id, string Title, string Date, string PrimaryMood, string SecondaryMoods, string Category, string[] Tags, string Content);
+    private record JournalEntry(
+        int Id,
+        string Title,
+        string Date,
+        string PrimaryMood,
+        string SecondaryMoods,
+        string Category,
+        string[] Tags,
+        MarkupString ContentHtml);
 }

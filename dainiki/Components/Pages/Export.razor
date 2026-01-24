@@ -1,4 +1,8 @@
 @page "/export"
+@inject JournalService JournalService
+@inject AnalyticsService AnalyticsService
+@inject AppState AppState
+@inject IJSRuntime JS
 
 <div class="page-header">
     <div>
@@ -6,7 +10,7 @@
         <p class="page-subtitle">Generate a PDF summary of your entries for a chosen date range.</p>
     </div>
     <div class="btn-row">
-        <button class="btn btn-primary" @onclick="@ExportPdf">Export PDF</button>
+        <button class="btn btn-primary" @onclick="ExportPdf">Export PDF</button>
     </div>
 </div>
 
@@ -15,17 +19,17 @@
         <h3 class="section-title">Date range</h3>
         <div class="form-field">
             <label class="form-label">From</label>
-            <input class="input" type="date" @bind="startDate" />
+            <input class="input" type="date" @bind="startDate" @bind:after="LoadExportDataAsync" />
         </div>
         <div class="form-field">
             <label class="form-label">To</label>
-            <input class="input" type="date" @bind="endDate" />
+            <input class="input" type="date" @bind="endDate" @bind:after="LoadExportDataAsync" />
         </div>
         <div class="form-field">
             <label class="form-label">Include</label>
             <label class="toggle"><input type="checkbox" @bind="includeMood" /> Mood tracking</label>
             <label class="toggle"><input type="checkbox" @bind="includeTags" /> Tags & categories</label>
-            <label class="toggle"><input type="checkbox" @bind="includeAnalytics" /> Analytics summary</label>
+            <label class="toggle"><input type="checkbox" @bind="includeAnalytics" @bind:after="LoadExportDataAsync" /> Analytics summary</label>
         </div>
     </div>
 
@@ -45,11 +49,88 @@
                     <div class="list-meta">@PreviewSections</div>
                 </div>
             </div>
+            <div class="list-item">
+                <div>
+                    <div class="timeline-title">Entries in range</div>
+                    <div class="list-meta">@exportEntries.Count</div>
+                </div>
+            </div>
         </div>
         <p style="margin-top: 12px; color: var(--muted);">
             Exported files remain on this device. No cloud sync by default.
         </p>
     </div>
+</div>
+
+<div id="pdf-export-content" class="pdf-export">
+    <h1>Dainiki Export</h1>
+    <div class="pdf-meta">Range: @PreviewRange</div>
+
+    @if (exportEntries.Count == 0)
+    {
+        <p>No entries found for this range.</p>
+    }
+    else
+    {
+        @foreach (var entry in exportEntries)
+        {
+            <h2>@entry.Title</h2>
+            <div class="pdf-meta">@entry.DateDisplay</div>
+            @if (includeMood)
+            {
+                <div class="pdf-meta">Mood: @entry.MoodDisplay</div>
+            }
+            @if (includeTags)
+            {
+                <div class="pdf-meta">Tags: @entry.TagsDisplay</div>
+            }
+            <div class="ql-editor">@entry.ContentHtml</div>
+            <hr />
+        }
+    }
+
+    @if (includeAnalytics && metrics != null)
+    {
+        <h2>Analytics Summary</h2>
+        <div class="pdf-meta">Total entries: @metrics.TotalEntries</div>
+        <div class="pdf-meta">Current streak: @metrics.CurrentStreak day(s)</div>
+        <div class="pdf-meta">Longest streak: @metrics.LongestStreak day(s)</div>
+        <div class="pdf-meta">Missed days: @metrics.MissedDays</div>
+        @if (metrics.HighestWordCountEntry != null)
+        {
+            <div class="pdf-meta">Highest word count: @metrics.HighestWordCountEntry.journal_title (@metrics.HighestWordCountEntry.word_count words)</div>
+        }
+        @if (metrics.MoodDistribution.Count > 0)
+        {
+            <h3>Mood distribution</h3>
+            <ul>
+                @foreach (var entry in metrics.MoodDistribution)
+                {
+                    <li>@entry.Key: @entry.Value</li>
+                }
+            </ul>
+        }
+        @if (metrics.TagBreakdown.Count > 0)
+        {
+            <h3>Tag breakdown</h3>
+            <ul>
+                @foreach (var entry in metrics.TagBreakdown)
+                {
+                    <li>@entry.Key: @entry.Value</li>
+                }
+            </ul>
+        }
+        @if (metrics.WordCountTrend.Count > 0)
+        {
+            <h3>Word count trend</h3>
+            <ul>
+                @foreach (var entry in metrics.WordCountTrend)
+                {
+                    <li>@entry.Date.ToString("MMM dd, yyyy"): @entry.WordCount</li>
+                }
+            </ul>
+        }
+    }
 </div>
 
 @if (!string.IsNullOrWhiteSpace(message))
@@ -64,6 +145,8 @@
     private bool includeTags = true;
     private bool includeAnalytics = true;
     private string? message;
+    private List<ExportEntry> exportEntries = new();
+    private AnalyticsService.DashboardMetrics? metrics;
 
     private string PreviewRange => $"{startDate:MMM dd, yyyy} - {endDate:MMM dd, yyyy}";
 
@@ -79,8 +162,84 @@
         }
     }
 
-    private void ExportPdf()
+    protected override async Task OnInitializedAsync()
     {
-        message = "PDF export queued. (UI only)";
+        await LoadExportDataAsync();
     }
+
+    private async Task ExportPdf()
+    {
+        if (AppState.CurrentUser == null)
+        {
+            message = "Please log in before exporting.";
+            return;
+        }
+
+        await LoadExportDataAsync();
+
+        var dataUri = await JS.InvokeAsync<string>("dainikiQuill.exportPdfFromElement", "pdf-export-content");
+        if (string.IsNullOrWhiteSpace(dataUri))
+        {
+            message = "Unable to generate PDF. Ensure Quill and html2pdf are loaded locally.";
+            return;
+        }
+
+        var commaIndex = dataUri.IndexOf(',');
+        var base64 = commaIndex >= 0 ? dataUri[(commaIndex + 1)..] : dataUri;
+        var bytes = Convert.FromBase64String(base64);
+        var fileName = $"dainiki-export-{DateTime.Now:yyyyMMdd-HHmmss}.pdf";
+        var filePath = Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, fileName);
+        await File.WriteAllBytesAsync(filePath, bytes);
+        message = $"Exported to {filePath}";
+    }
+
+    private async Task LoadExportDataAsync()
+    {
+        exportEntries.Clear();
+        metrics = null;
+
+        if (AppState.CurrentUser == null)
+        {
+            return;
+        }
+
+        var rangeStart = startDate;
+        var rangeEnd = endDate;
+        if (rangeEnd < rangeStart)
+        {
+            (rangeStart, rangeEnd) = (rangeEnd, rangeStart);
+        }
+
+        var entries = await JournalService.GetJournalsInRangeAsync(AppState.CurrentUser.username, rangeStart, rangeEnd);
+        exportEntries = entries.Select(entry =>
+        {
+            var primaryMood = entry.JournalMoods.FirstOrDefault(mood => mood.mood_role == "Primary")?.mood?.mood_name ?? "None";
+            var secondary = entry.JournalMoods
+                .Where(mood => mood.mood_role == "Secondary")
+                .Select(mood => mood.mood?.mood_name)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .ToList();
+            var moodDisplay = primaryMood + (secondary.Count > 0 ? $" (Secondary: {string.Join(", ", secondary)})" : "");
+
+            var tags = entry.JournalTags
+                .Select(tag => tag.tag?.tag_name)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .ToList();
+
+            return new ExportEntry(
+                entry.journal_id,
+                entry.journal_title,
+                entry.journal_date.ToString("MMM dd, yyyy"),
+                moodDisplay,
+                tags.Count == 0 ? "None" : string.Join(", ", tags),
+                new MarkupString(entry.journal_content_url));
+        }).ToList();
+
+        if (includeAnalytics)
+        {
+            metrics = await AnalyticsService.GetMetricsAsync(AppState.CurrentUser.username, rangeStart, rangeEnd);
+        }
+    }
+
+    private record ExportEntry(int Id, string Title, string DateDisplay, string MoodDisplay, string TagsDisplay, MarkupString ContentHtml);
 }

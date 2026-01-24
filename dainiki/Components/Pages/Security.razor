@@ -1,4 +1,7 @@
 @page "/security"
+@inject AuthService AuthService
+@inject DainikiDbContext DbContext
+@inject AppState AppState
 
 <div class="page-header">
     <div>
@@ -12,11 +15,11 @@
         <h3 class="section-title">Set password</h3>
         <div class="form-field">
             <label class="form-label">New password</label>
-            <input class="input" type="password" placeholder="Create a strong password" />
+            <input class="input" type="password" placeholder="Create a strong password" @bind="newPassword" />
         </div>
         <div class="form-field">
             <label class="form-label">Confirm password</label>
-            <input class="input" type="password" placeholder="Re-enter password" />
+            <input class="input" type="password" placeholder="Re-enter password" @bind="confirmPassword" />
         </div>
         <button class="btn btn-primary" @onclick="SaveSecurity">Save password</button>
     </div>
@@ -25,7 +28,7 @@
         <h3 class="section-title">PIN & lock settings</h3>
         <div class="form-field">
             <label class="form-label">PIN code</label>
-            <input class="input" type="password" placeholder="4-digit PIN" />
+            <input class="input" type="password" placeholder="4-digit PIN" @bind="pin" />
         </div>
         <div class="form-field">
             <label class="form-label">Auto-lock</label>
@@ -51,9 +54,65 @@
     private bool autoLock = true;
     private bool hidePreview;
     private string? message;
+    private string newPassword = string.Empty;
+    private string confirmPassword = string.Empty;
+    private string pin = string.Empty;
 
-    private void SaveSecurity()
+    protected override void OnInitialized()
     {
-        message = "Security settings saved. (UI only)";
+        if (AppState.CurrentUser != null)
+        {
+            autoLock = AppState.CurrentUser.auto_lock;
+            hidePreview = AppState.CurrentUser.hide_preview;
+        }
+    }
+
+    private async Task SaveSecurity()
+    {
+        if (AppState.CurrentUser == null)
+        {
+            message = "Please log in before updating security settings.";
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(newPassword))
+        {
+            if (newPassword != confirmPassword)
+            {
+                message = "Passwords do not match.";
+                return;
+            }
+
+            var passwordResult = await AuthService.UpdatePasswordAsync(AppState.CurrentUser.username, newPassword);
+            if (!passwordResult.Success)
+            {
+                message = passwordResult.ErrorMessage;
+                return;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(pin))
+        {
+            var pinResult = await AuthService.UpdatePinAsync(AppState.CurrentUser.username, pin);
+            if (!pinResult.Success)
+            {
+                message = pinResult.ErrorMessage;
+                return;
+            }
+        }
+
+        var user = await DbContext.Users.FirstOrDefaultAsync(candidate => candidate.username == AppState.CurrentUser.username);
+        if (user != null)
+        {
+            user.auto_lock = autoLock;
+            user.hide_preview = hidePreview;
+            await DbContext.SaveChangesAsync();
+            AppState.UpdateUserSettings(hidePreview, autoLock, null);
+        }
+
+        message = "Security settings saved.";
+        newPassword = string.Empty;
+        confirmPassword = string.Empty;
+        pin = string.Empty;
     }
 }

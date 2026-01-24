@@ -1,6 +1,8 @@
 @page "/home"
 
 @inject NavigationManager Navigation
+@inject AppState AppState
+@inject AnalyticsService AnalyticsService
 
 <div class="center-stack">
     <div>
@@ -9,7 +11,16 @@
 
     <div class="streak-panel">
         <div class="streak-label">Streaks</div>
-        <div class="list-meta">streaks will be displayed here</div>
+        @if (metrics == null)
+        {
+            <div class="list-meta">No streak data yet.</div>
+        }
+        else
+        {
+            <div class="list-meta">Current streak: @metrics.CurrentStreak day(s)</div>
+            <div class="list-meta">Longest streak: @metrics.LongestStreak day(s)</div>
+            <div class="list-meta">Missed days: @metrics.MissedDays</div>
+        }
     </div>
 
     <div class="btn-row" style="justify-content: center;">
@@ -18,7 +29,16 @@
 </div>
 
 @code{
-    const string username = "username";
+    private string username => AppState.CurrentUser?.username ?? "friend";
+    private AnalyticsService.DashboardMetrics? metrics;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState.CurrentUser != null)
+        {
+            metrics = await AnalyticsService.GetMetricsAsync(AppState.CurrentUser.username);
+        }
+    }
 
     void newButton()
     {

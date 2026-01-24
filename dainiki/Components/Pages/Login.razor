@@ -1,12 +1,13 @@
 @page "/login"
 @layout AuthLayout
 @inject NavigationManager Navigation
+@inject AuthService AuthService
 
 <div class="auth-shell">
     <div class="auth-card reveal">
         <h1 class="auth-title">Welcome to Dainiki</h1>
 
-        <form @onsubmit="loginValidator">
+        <form @onsubmit="loginValidator" @onsubmit:preventDefault>
             <div class="form-field">
                 <label class="form-label" for="username">Username</label>
                 <input class="input" type="text" id="username" @bind="username" placeholder="Enter your username" />
@@ -26,6 +27,11 @@
             <span class="auth-helper">New here?</span>
             <NavLink href="signup">Signup</NavLink>
         </div>
+
+        @if (!string.IsNullOrWhiteSpace(message))
+        {
+            <p style="margin-top: 12px;">@message</p>
+        }
     </div>
 </div>
 
@@ -34,16 +40,16 @@
     private string password = string.Empty;
     private string message = string.Empty;
 
-    async Task loginValidator()
+    private async Task loginValidator()
     {
-        if (String.IsNullOrWhiteSpace(username) || String.IsNullOrWhiteSpace(password))
+        var result = await AuthService.LoginAsync(username, password);
+        if (!result.Success)
         {
-            message = "username or password invalid";
+            message = result.ErrorMessage;
             return;
         }
 
-        message = "logged in successfully";
-        Console.WriteLine("Login method called");
+        message = string.Empty;
         Navigation.NavigateTo("home");
     }
 }

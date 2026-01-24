@@ -1,4 +1,6 @@
 @page "/settings"
+@inject AppState AppState
+@inject DainikiDbContext DbContext
 
 <div class="page-header">
     <div>
@@ -7,7 +9,7 @@
     <div class="toolbar">
         <div class="toolbar-group">
             <label class="form-label">@themeLabel</label>
-            <select class="select">
+            <select class="select" @bind="selectedTheme" @bind:after="ApplyTheme">
                 @foreach (var theme in themes)
                 {
                     <option>@theme</option>
@@ -63,10 +65,11 @@
     private string themeLabel = "Change theme";
     private List<string> themes = new()
     {
-        "Classic",
-        "Midnight",
-        "Sunrise"
+        "Daylight",
+        "Nocturne",
+        "Dusk"
     };
+    private string selectedTheme = "Daylight";
 
     private string securityTitle = "Security";
     private string securityDescription = "Manage password, PIN, and privacy modes.";
@@ -95,4 +98,31 @@
 
     private string dataLocationLabel = "Data location";
     private string dataLocationValue = "Local SQLite";
+
+    protected override void OnInitialized()
+    {
+        dataLocationValue = Microsoft.Maui.Storage.FileSystem.AppDataDirectory;
+        if (AppState.CurrentUser?.theme != null)
+        {
+            selectedTheme = AppState.CurrentUser.theme;
+        }
+    }
+
+    private async Task ApplyTheme()
+    {
+        if (AppState.CurrentUser == null)
+        {
+            return;
+        }
+
+        var user = await DbContext.Users.FirstOrDefaultAsync(candidate => candidate.username == AppState.CurrentUser.username);
+        if (user == null)
+        {
+            return;
+        }
+
+        user.theme = selectedTheme;
+        await DbContext.SaveChangesAsync();
+        AppState.UpdateUserSettings(theme: selectedTheme);
+    }
 }

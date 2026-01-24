@@ -2,12 +2,13 @@
 @page "/"
 @layout AuthLayout
 @inject NavigationManager Navigation
+@inject AuthService AuthService
 
 <div class="auth-shell">
     <div class="auth-card reveal">
         <h1 class="auth-title">Welcome to Dainiki</h1>
 
-        <form @onsubmit="signupValidator">
+        <form @onsubmit="signupValidator" @onsubmit:preventDefault>
             <div class="form-field">
                 <label class="form-label" for="username">Username</label>
                 <input class="input" type="text" @bind="username" id="username" placeholder="Choose a username" />
@@ -33,21 +34,20 @@
 </div>
 
 @code {
-    private string username;
-    private string password;
-    private string message;
+    private string username = string.Empty;
+    private string password = string.Empty;
+    private string message = string.Empty;
 
-    async Task signupValidator()
+    private async Task signupValidator()
     {
-        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        var result = await AuthService.RegisterAsync(username, password);
+        if (!result.Success)
         {
-            message = "Username or password invalid";
+            message = result.ErrorMessage;
             return;
         }
 
-        message = "signed up successfully, please login using the same credentials";
-        Console.WriteLine("Signup method called");
+        message = "Signed up successfully. Please log in.";
         Navigation.NavigateTo("login");
-
     }
 }

@@ -1,4 +1,5 @@
 @page "/tags"
+@inject DainikiDbContext DbContext
 
 <div class="page-header">
     <div>
@@ -6,6 +7,7 @@
         <p class="page-subtitle">Manage custom tags and keep your journal organized.</p>
     </div>
     <div class="btn-row">
+        <input class="input" placeholder="New tag" @bind="newTagName" />
         <button class="btn btn-primary" @onclick="AddTag">Add tag</button>
     </div>
 </div>
@@ -16,7 +18,7 @@
         <div class="chip-group">
             @foreach (var tag in tags)
             {
-                <button class="chip @(tag.Selected ? "chip--active" : "")" @onclick="() => ToggleTag(tag)">@tag.Label</button>
+                <span class="chip chip--active">@tag.tag_name</span>
             }
         </div>
     </div>
@@ -45,40 +47,63 @@
 
 @code {
     private string? message;
+    private string newTagName = string.Empty;
 
-    private List<TagItem> tags = new()
-    {
-        new TagItem("Work"), new TagItem("Career"), new TagItem("Studies"), new TagItem("Family"),
-        new TagItem("Friends"), new TagItem("Relationships"), new TagItem("Health"), new TagItem("Fitness"),
-        new TagItem("Personal Growth"), new TagItem("Self-care"), new TagItem("Travel"), new TagItem("Reflection")
-    };
+    private List<Tag> tags = new();
+    private List<CategoryItem> categories = new();
 
-    private List<CategoryItem> categories = new()
+    protected override async Task OnInitializedAsync()
     {
-        new CategoryItem("Positive", "Happy, excited, relaxed", 24),
-        new CategoryItem("Neutral", "Calm, thoughtful, curious", 18),
-        new CategoryItem("Negative", "Sad, stressed, anxious", 10)
-    };
+        tags = await DbContext.Tags
+            .OrderBy(tag => tag.tag_name)
+            .ToListAsync();
 
-    private void ToggleTag(TagItem tag)
-    {
-        tag.Selected = !tag.Selected;
+        var categoryList = await DbContext.Categories
+            .Where(category => category.category_type == "Journal")
+            .OrderBy(category => category.category_name)
+            .ToListAsync();
+
+        categories = await BuildCategoryItemsAsync(categoryList);
     }
 
-    private void AddTag()
+    private async Task AddTag()
     {
-        message = "Add tag form coming soon (UI only).";
-    }
-
-    private class TagItem
-    {
-        public TagItem(string label)
+        var trimmed = newTagName.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
         {
-            Label = label;
+            message = "Tag name cannot be empty.";
+            return;
         }
 
-        public string Label { get; }
-        public bool Selected { get; set; }
+        var exists = await DbContext.Tags.AnyAsync(tag => tag.tag_name == trimmed);
+        if (exists)
+        {
+            message = "That tag already exists.";
+            return;
+        }
+
+        DbContext.Tags.Add(new Tag
+        {
+            tag_name = trimmed,
+            system_tag = false
+        });
+
+        await DbContext.SaveChangesAsync();
+        tags = await DbContext.Tags.OrderBy(tag => tag.tag_name).ToListAsync();
+        newTagName = string.Empty;
+        message = "Tag added.";
+    }
+
+    private async Task<List<CategoryItem>> BuildCategoryItemsAsync(List<Category> categoryList)
+    {
+        var items = new List<CategoryItem>();
+        foreach (var category in categoryList)
+        {
+            var count = await DbContext.Journals.CountAsync(journal => journal.category_id == category.category_id);
+            items.Add(new CategoryItem(category.category_name, "Journal category", count));
+        }
+
+        return items;
     }
 
     private record CategoryItem(string Name, string Description, int Count);

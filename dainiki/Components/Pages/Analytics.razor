@@ -1,5 +1,7 @@
 @page "/dashboard"
 @page "/analytics"
+@inject AnalyticsService AnalyticsService
+@inject AppState AppState
 
 <div class="page-header">
     <div>
@@ -7,6 +9,23 @@
         <p class="page-subtitle">@pageSubtitle</p>
     </div>
 </div>
+
+<details class="filter-panel">
+    <summary>Analytics range</summary>
+    <div class="form-grid" style="margin-top: 12px;">
+        <div class="form-field">
+            <label class="form-label">From</label>
+            <input class="input" type="date" @bind="analyticsStartDate" />
+        </div>
+        <div class="form-field">
+            <label class="form-label">To</label>
+            <input class="input" type="date" @bind="analyticsEndDate" />
+        </div>
+    </div>
+    <div style="margin-top: 12px;">
+        <button class="btn btn-primary" type="button" @onclick="ApplyRange">Apply</button>
+    </div>
+</details>
 
 <div class="dashboard-grid">
     <div class="dashboard-main">
@@ -28,6 +47,18 @@
                     <polyline class="chart-line" points="0,72 20,64 40,52 60,36 80,44 100,30 120,36"></polyline>
                 </svg>
             </div>
+            @if (wordCountTrend.Count > 0)
+            {
+                <div class="table-list" style="margin-top: 12px;">
+                    @foreach (var point in wordCountTrend)
+                    {
+                        <div class="list-item">
+                            <div class="timeline-title">@point.Date.ToString("MMM dd")</div>
+                            <div class="list-meta">@point.WordCount words</div>
+                        </div>
+                    }
+                </div>
+            }
         </div>
     </div>
 
@@ -49,9 +80,29 @@
         </div>
 
         <div class="stat-box">
+            <div class="stat-label">@currentStreakLabel</div>
+            <div class="stat-value">@currentStreakValue</div>
+        </div>
+
+        <div class="stat-box">
+            <div class="stat-label">@missedDaysLabel</div>
+            <div class="stat-value">@missedDaysValue</div>
+        </div>
+
+        <div class="stat-box">
             <div class="stat-label">@frequentMoodsLabel</div>
             <ol class="stat-list">
                 @foreach (var mood in frequentMoods)
+                {
+                    <li>@mood</li>
+                }
+            </ol>
+        </div>
+
+        <div class="stat-box">
+            <div class="stat-label">@moodDistributionLabel</div>
+            <ol class="stat-list">
+                @foreach (var mood in moodDistribution)
                 {
                     <li>@mood</li>
                 }
@@ -67,6 +118,16 @@
                 }
             </ol>
         </div>
+
+        <div class="stat-box">
+            <div class="stat-label">@tagBreakdownLabel</div>
+            <ol class="stat-list">
+                @foreach (var tag in tagBreakdown)
+                {
+                    <li>@tag</li>
+                }
+            </ol>
+        </div>
     </div>
 </div>
 
@@ -77,23 +138,77 @@
     private string wordCountLabel = "Word count history";
 
     private string highestWordCountLabel = "Highest word count";
-    private string highestWordCountValue = "Journal 1";
+    private string highestWordCountValue = "No entries yet";
 
     private string highestStreakLabel = "Highest streak till date";
-    private string highestStreakValue = "10 days";
-    private string highestStreakRange = "Oct 01 to Oct 10";
+    private string highestStreakValue = "0 days";
+    private string highestStreakRange = "Not enough data";
+
+    private string currentStreakLabel = "Current streak";
+    private string currentStreakValue = "0 days";
+
+    private string missedDaysLabel = "Missed days";
+    private string missedDaysValue = "0";
 
     private string frequentMoodsLabel = "Most frequent moods";
-    private List<string> frequentMoods = new()
-    {
-        "Mood1",
-        "Mood2"
-    };
+    private List<string> frequentMoods = new();
+
+    private string moodDistributionLabel = "Mood distribution";
+    private List<string> moodDistribution = new();
 
     private string usedTagsLabel = "Most used tags";
-    private List<string> usedTags = new()
+    private List<string> usedTags = new();
+
+    private string tagBreakdownLabel = "Tag breakdown";
+    private List<string> tagBreakdown = new();
+    private List<AnalyticsService.WordCountPoint> wordCountTrend = new();
+    private DateTime? analyticsStartDate = DateTime.Today.AddDays(-30);
+    private DateTime? analyticsEndDate = DateTime.Today;
+
+    protected override async Task OnInitializedAsync()
     {
-        "tag1",
-        "tag2"
-    };
+        await LoadMetricsAsync();
+    }
+
+    private async Task ApplyRange()
+    {
+        await LoadMetricsAsync();
+    }
+
+    private async Task LoadMetricsAsync()
+    {
+        if (AppState.CurrentUser == null)
+        {
+            return;
+        }
+
+        var metrics = await AnalyticsService.GetMetricsAsync(
+            AppState.CurrentUser.username,
+            analyticsStartDate,
+            analyticsEndDate);
+
+        highestWordCountValue = metrics.HighestWordCountEntry == null
+            ? "No entries yet"
+            : $"{metrics.HighestWordCountEntry.journal_title} ({metrics.HighestWordCountEntry.word_count} words)";
+
+        highestStreakValue = $"{metrics.LongestStreak} days";
+
+        if (metrics.LongestStreak > 0)
+        {
+            highestStreakRange = "Based on recorded entries";
+        }
+
+        currentStreakValue = $"{metrics.CurrentStreak} days";
+        missedDaysValue = metrics.MissedDays.ToString();
+
+        frequentMoods = metrics.FrequentMoods.Count == 0 ? new List<string> { "No moods yet" } : metrics.FrequentMoods.ToList();
+        moodDistribution = metrics.MoodDistribution.Count == 0
+            ? new List<string> { "No distribution yet" }
+            : metrics.MoodDistribution.Select(entry => $"{entry.Key} ({entry.Value})").ToList();
+        usedTags = metrics.FrequentTags.Count == 0 ? new List<string> { "No tags yet" } : metrics.FrequentTags.ToList();
+        tagBreakdown = metrics.TagBreakdown.Count == 0
+            ? new List<string> { "No tag data yet" }
+            : metrics.TagBreakdown.Select(entry => $"{entry.Key} ({entry.Value})").ToList();
+        wordCountTrend = metrics.WordCountTrend.TakeLast(6).ToList();
+    }
 }

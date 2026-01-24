@@ -1,4 +1,9 @@
 @page "/newjournal"
+@page "/newjournal/{Id:int?}"
+@inject JournalService JournalService
+@inject DainikiDbContext DbContext
+@inject AppState AppState
+@inject IJSRuntime JS
 
 <div class="page-header">
     <div>
@@ -15,34 +20,56 @@
             <input class="input" placeholder="Title" @bind="title" />
         </div>
         <div class="form-field">
+            <label class="form-label">Entry date</label>
+            <div class="btn-row">
+                <input class="input" type="date" @bind="entryDate" />
+                <input class="input" type="time" @bind="entryTime" />
+            </div>
+        </div>
+        <div class="form-field">
+            <label class="form-label">Category</label>
+            <select class="select" @bind="categoryId">
+                <option value="0">Select category</option>
+                @foreach (var category in categories)
+                {
+                    <option value="@category.category_id">@category.category_name</option>
+                }
+            </select>
+        </div>
+        <div class="form-field">
             <label class="form-label">Primary mood</label>
-            <select class="select" @bind="primaryMood">
-                <option value="Select mood">Select mood</option>
+            <select class="select" @bind="primaryMoodId">
+                <option value="">Select mood</option>
                 @foreach (var mood in moods)
                 {
-                    <option value="@mood">@mood</option>
+                    <option value="@mood.mood_id">@mood.mood_name</option>
                 }
             </select>
         </div>
         <div class="form-field">
             <label class="form-label">Secondary mood 1</label>
-            <select class="select" @bind="mood1">
-                <option value="Select mood">Select mood</option>
+            <select class="select" @bind="secondaryMood1Id">
+                <option value="">Select mood</option>
                 @foreach (var mood in moods)
                 {
-                    <option value="@mood">@mood</option>
+                    <option value="@mood.mood_id">@mood.mood_name</option>
                 }
             </select>
         </div>
         <div class="form-field">
             <label class="form-label">Secondary mood 2</label>
-            <select class="select" @bind="mood2">
-                <option value="Select mood">Select mood</option>
+            <select class="select" @bind="secondaryMood2Id">
+                <option value="">Select mood</option>
                 @foreach (var mood in moods)
                 {
-                    <option value="@mood">@mood</option>
+                    <option value="@mood.mood_id">@mood.mood_name</option>
                 }
             </select>
+        </div>
+        <div class="form-field">
+            <label class="toggle">
+                <input type="checkbox" @bind="isPinned" /> Pin this entry
+            </label>
         </div>
     </div>
 
@@ -51,56 +78,238 @@
         <div class="chip-group">
             @foreach (var tag in allTags)
             {
-                <button class="chip @(selectedTags.Contains(tag) ? "chip--active" : "")" type="button" @onclick="() => ToggleTag(tag)">
-                    @(selectedTags.Contains(tag) ? "✓ " : "")@tag
+                <button class="chip @(selectedTagIds.Contains(tag.tag_id) ? "chip--active" : "")" type="button" @onclick="() => ToggleTag(tag)">
+                    @(selectedTagIds.Contains(tag.tag_id) ? "✓ " : "")@tag.tag_name
                 </button>
             }
+        </div>
+        <div class="form-field" style="margin-top: 12px;">
+            <label class="form-label">Add custom tag</label>
+            <div class="btn-row">
+                <input class="input" placeholder="New tag" @bind="newTagName" />
+                <button class="btn btn-secondary" type="button" @onclick="AddCustomTag">Add</button>
+            </div>
         </div>
     </div>
 </div>
 
 <div class="card reveal" style="--delay: 0.15s;">
     <h3 class="section-title">Write your content here</h3>
-    <textarea class="textarea" @bind="description"></textarea>
+    <div id="@EditorId"></div>
 </div>
 
 <div class="btn-row">
-    <button class="btn btn-primary" @onclick="saveJournal">Save</button>
+    <button class="btn btn-primary" @onclick="SaveJournal">Save</button>
 </div>
 
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <p style="color: var(--accent-3);">@message</p>
+}
+
 @code {
-    private string title;
-    private string description;
+    [Parameter] public int? Id { get; set; }
 
-    private string primaryMood = "Select mood";
-    private string mood1 = "Select mood";
-    private string mood2 = "Select mood";
+    private string title = string.Empty;
+    private string description = string.Empty;
+    private string newTagName = string.Empty;
+    private string? message;
+    private bool quillReady;
+    private bool refreshEditor;
 
-    private List<string> moods = new()
+    private const string EditorId = "journal-editor";
+
+    private DateTime entryDate = DateTime.Today;
+    private TimeSpan entryTime = DateTime.Now.TimeOfDay;
+    private int categoryId;
+    private bool isPinned;
+
+    private int? primaryMoodId;
+    private int? secondaryMood1Id;
+    private int? secondaryMood2Id;
+
+    private List<Mood> moods = new();
+    private List<Tag> allTags = new();
+    private List<Category> categories = new();
+    private HashSet<int> selectedTagIds = new();
+
+    protected override async Task OnInitializedAsync()
     {
-        "happy", "sad", "angry", "amused", "funny"
-    };
+        if (AppState.CurrentUser == null)
+        {
+            return;
+        }
 
-    private List<string> allTags = new()
-    {
-        "Work", "Career", "Studies", "Family", "Friends", "Relationships",
-        "Health", "Fitness", "Personal Growth", "Self-care", "Hobbies", "Travel", "Nature",
-        "Finance", "Spirituality", "Birthday", "Holiday", "Vacation", "Celebration", "Exercise",
-        "Reading", "Writing", "Cooking", "Meditation", "Yoga", "Music", "Shopping", "Parenting",
-        "Projects", "Planning", "Reflection"
-    };
+        categories = await DbContext.Categories
+            .Where(category => category.category_type == "Journal")
+            .OrderBy(category => category.category_name)
+            .ToListAsync();
 
-    private List<string> selectedTags = new();
+        moods = await DbContext.Moods
+            .Include(mood => mood.category)
+            .OrderBy(mood => mood.category!.category_name)
+            .ThenBy(mood => mood.mood_name)
+            .ToListAsync();
 
-    void ToggleTag(string tag)
-    {
-        if (selectedTags.Contains(tag))
-            selectedTags.Remove(tag);
-        else
-            selectedTags.Add(tag);
+        allTags = await DbContext.Tags
+            .OrderBy(tag => tag.tag_name)
+            .ToListAsync();
+
+        if (Id.HasValue)
+        {
+            await LoadJournalAsync(Id.Value);
+        }
+        else if (categories.Count > 0)
+        {
+            categoryId = categories[0].category_id;
+        }
     }
 
-    void saveJournal()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!quillReady)
+        {
+            await JS.InvokeVoidAsync("dainikiQuill.initEditor", EditorId, description);
+            quillReady = true;
+            refreshEditor = false;
+            return;
+        }
+
+        if (refreshEditor)
+        {
+            await JS.InvokeVoidAsync("dainikiQuill.setHtml", EditorId, description);
+            refreshEditor = false;
+        }
+    }
+
+    private async Task LoadJournalAsync(int journalId)
+    {
+        if (AppState.CurrentUser == null)
+        {
+            return;
+        }
+
+        var journal = await JournalService.GetJournalAsync(journalId, AppState.CurrentUser.username);
+        if (journal == null)
+        {
+            message = "Entry not found.";
+            return;
+        }
+
+        title = journal.journal_title;
+        description = journal.journal_content_url;
+        refreshEditor = true;
+        entryDate = journal.journal_date;
+        entryTime = journal.journal_time;
+        categoryId = journal.category_id;
+        isPinned = journal.is_pinned;
+
+        var primaryMood = journal.JournalMoods.FirstOrDefault(mood => mood.mood_role == "Primary");
+        primaryMoodId = primaryMood?.mood_id;
+
+        var secondaryMoods = journal.JournalMoods
+            .Where(mood => mood.mood_role == "Secondary")
+            .Select(mood => mood.mood_id)
+            .ToList();
+
+        secondaryMood1Id = secondaryMoods.ElementAtOrDefault(0);
+        secondaryMood2Id = secondaryMoods.ElementAtOrDefault(1);
+
+        selectedTagIds = journal.JournalTags.Select(tag => tag.tag_id).ToHashSet();
+    }
+
+    private void ToggleTag(Tag tag)
+    {
+        if (selectedTagIds.Contains(tag.tag_id))
+        {
+            selectedTagIds.Remove(tag.tag_id);
+        }
+        else
+        {
+            selectedTagIds.Add(tag.tag_id);
+        }
+    }
+
+    private async Task AddCustomTag()
+    {
+        var trimmed = newTagName.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            return;
+        }
+
+        var existing = await DbContext.Tags.FirstOrDefaultAsync(tag => tag.tag_name == trimmed);
+        if (existing != null)
+        {
+            selectedTagIds.Add(existing.tag_id);
+            newTagName = string.Empty;
+            return;
+        }
+
+        var tagEntry = new Tag
+        {
+            tag_name = trimmed,
+            system_tag = false
+        };
+
+        DbContext.Tags.Add(tagEntry);
+        await DbContext.SaveChangesAsync();
+        allTags = await DbContext.Tags.OrderBy(tag => tag.tag_name).ToListAsync();
+        selectedTagIds.Add(tagEntry.tag_id);
+        newTagName = string.Empty;
+    }
+
+    private async Task SaveJournal()
+    {
+        if (AppState.CurrentUser == null)
+        {
+            message = "Please log in first.";
+            return;
+        }
+
+        description = await JS.InvokeAsync<string>("dainikiQuill.getHtml", EditorId);
+
+        if (categoryId == 0)
+        {
+            message = "Please choose a category.";
+            return;
+        }
+
+        var secondaryIds = new List<int>();
+        if (secondaryMood1Id.HasValue)
+        {
+            secondaryIds.Add(secondaryMood1Id.Value);
+        }
+
+        if (secondaryMood2Id.HasValue)
+        {
+            secondaryIds.Add(secondaryMood2Id.Value);
+        }
+
+        var result = await JournalService.SaveJournalAsync(new JournalService.JournalInput(
+            Id,
+            AppState.CurrentUser.username,
+            title,
+            description,
+            entryDate.Date + entryTime,
+            categoryId,
+            isPinned,
+            primaryMoodId,
+            secondaryIds,
+            selectedTagIds.ToList()));
+
+        if (!result.Success)
+        {
+            message = result.ErrorMessage;
+            if (result.JournalId != 0)
+            {
+                Id = result.JournalId;
+                await LoadJournalAsync(result.JournalId);
+            }
+            return;
+        }
+
+        message = result.WasCreated ? "Entry saved." : "Entry updated.";
+        Id = result.JournalId;
     }
 }

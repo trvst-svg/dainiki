@@ -1,4 +1,6 @@
 @page "/themes"
+@inject AppState AppState
+@inject DainikiDbContext DbContext
 
 <div class="page-header">
     <div>
@@ -40,20 +42,51 @@
 
     private List<ThemeOption> themes = new()
     {
-        new ThemeOption("Nocturne", "Deep charcoal with gold accents.", new[] { "#0f0e0b", "#1a1813", "#f6c445" }, true),
         new ThemeOption("Daylight", "Warm parchment with soft neutrals.", new[] { "#f4efe2", "#d8cdb8", "#7a6650" }),
+        new ThemeOption("Nocturne", "Deep charcoal with gold accents.", new[] { "#0f0e0b", "#1a1813", "#f6c445" }),
         new ThemeOption("Dusk", "Muted teal with amber highlights.", new[] { "#102328", "#1a3a3f", "#f29e7d" })
     };
 
-    private void SetTheme(ThemeOption theme)
+    protected override void OnInitialized()
     {
+        var current = AppState.CurrentUser?.theme;
+        if (!string.IsNullOrWhiteSpace(current))
+        {
+            foreach (var option in themes)
+            {
+                option.IsActive = string.Equals(option.Name, current, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+        else
+        {
+            themes[0].IsActive = true;
+        }
+    }
+
+    private async Task SetTheme(ThemeOption theme)
+    {
+        if (AppState.CurrentUser == null)
+        {
+            message = "Please log in to update theme settings.";
+            return;
+        }
+
         foreach (var option in themes)
         {
             option.IsActive = false;
         }
 
         theme.IsActive = true;
-        message = $"Theme '{theme.Name}' applied. (UI only)";
+
+        var user = await DbContext.Users.FirstOrDefaultAsync(candidate => candidate.username == AppState.CurrentUser.username);
+        if (user != null)
+        {
+            user.theme = theme.Name;
+            await DbContext.SaveChangesAsync();
+            AppState.UpdateUserSettings(theme: theme.Name);
+        }
+
+        message = $"Theme '{theme.Name}' applied.";
     }
 
     private class ThemeOption

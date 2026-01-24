@@ -1,4 +1,9 @@
 @page "/calendar"
+@using System.Net
+@using System.Text.RegularExpressions
+@inject JournalService JournalService
+@inject AppState AppState
+@inject NavigationManager Navigation
 
 <div class="page-header">
     <div>
@@ -15,7 +20,7 @@
     <div class="card reveal" style="--delay: 0.05s;">
         <div class="card-header">
             <h3 class="card-title">@monthLabel</h3>
-            <span class="badge">Entries: @entries.Count</span>
+            <span class="badge">Entries: @monthEntryCount</span>
         </div>
 
         <div class="calendar" style="margin-top: 16px;">
@@ -31,7 +36,7 @@
                 }
                 else
                 {
-                    <div class="calendar-day">
+                    <div class="calendar-day" @onclick="() => NavigateToEntry(day.EntryId)">
                         <div class="calendar-day__num">@day.DayNumber</div>
                         @if (day.HasEntry)
                         {
@@ -65,20 +70,56 @@
 @code {
     private DateTime month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
     private List<CalendarDay> calendarDays = new();
+    private int monthEntryCount;
 
     private string[] weekDays = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 
-    private List<CalendarEntry> entries = new()
-    {
-        new CalendarEntry("Mon, Jan 6", "Relaxed", "A slow sunrise", "Noticed the morning light and planned the day."),
-        new CalendarEntry("Sun, Jan 5", "Focused", "Sprint wrap", "Reviewed tasks and outlined the next steps."),
-        new CalendarEntry("Sat, Jan 4", "Grateful", "Evening reset", "Walked, listened to music, and recharged.")
-    };
+    private List<CalendarEntry> entries = new();
+    private Dictionary<DateTime, Journal> journalByDate = new();
 
     private string monthLabel => month.ToString("MMMM yyyy");
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        await LoadMonthAsync();
+    }
+
+    private async Task LoadMonthAsync()
+    {
+        if (AppState.CurrentUser == null)
+        {
+            return;
+        }
+
+        var start = new DateTime(month.Year, month.Month, 1);
+        var end = start.AddMonths(1).AddDays(-1);
+        var journals = await JournalService.GetJournalsInRangeAsync(AppState.CurrentUser.username, start, end);
+        journalByDate = journals.ToDictionary(journal => journal.journal_date.Date);
+        monthEntryCount = journals.Count;
+
+        var weekStart = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
+        var weekEnd = weekStart.AddDays(6);
+        var hidePreview = AppState.CurrentUser.hide_preview;
+        entries = journals
+            .Where(journal => journal.journal_date.Date >= weekStart && journal.journal_date.Date <= weekEnd)
+            .OrderByDescending(journal => journal.journal_date)
+            .Select(journal =>
+            {
+                var primaryMood = journal.JournalMoods.FirstOrDefault(mood => mood.mood_role == "Primary")?.mood?.mood_name ?? "No mood";
+                var previewText = StripHtml(journal.journal_content_url);
+                var preview = hidePreview
+                    ? "Preview hidden"
+                    : (previewText.Length > 80
+                        ? previewText[..80] + "..."
+                        : previewText);
+                return new CalendarEntry(
+                    journal.journal_date.ToString("ddd, MMM dd"),
+                    primaryMood,
+                    journal.journal_title,
+                    preview);
+            })
+            .ToList();
+
         BuildCalendar();
     }
 
@@ -96,27 +137,48 @@
 
         for (var day = 1; day <= daysInMonth; day++)
         {
-            var hasEntry = day % 3 == 0 || day == DateTime.Today.Day;
-            calendarDays.Add(new CalendarDay(day, hasEntry));
+            var date = new DateTime(month.Year, month.Month, day);
+            var hasEntry = journalByDate.ContainsKey(date);
+            calendarDays.Add(new CalendarDay(day, hasEntry, hasEntry ? journalByDate[date].journal_id : null));
         }
     }
 
-    private void GoPrevious()
+    private async Task GoPrevious()
     {
         month = month.AddMonths(-1);
-        BuildCalendar();
+        await LoadMonthAsync();
     }
 
-    private void GoNext()
+    private async Task GoNext()
     {
         month = month.AddMonths(1);
-        BuildCalendar();
+        await LoadMonthAsync();
     }
 
     private record CalendarEntry(string Date, string Mood, string Title, string Preview);
 
-    private record CalendarDay(int DayNumber, bool HasEntry, bool IsPlaceholder = false)
+    private record CalendarDay(int DayNumber, bool HasEntry, int? EntryId, bool IsPlaceholder = false)
     {
-        public static CalendarDay Placeholder() => new CalendarDay(0, false, true);
+        public static CalendarDay Placeholder() => new CalendarDay(0, false, null, true);
+    }
+
+    private static string StripHtml(string html)
+    {
+        if (string.IsNullOrWhiteSpace(html))
+        {
+            return string.Empty;
+        }
+
+        var noTags = Regex.Replace(html, "<.*?>", " ");
+        var decoded = WebUtility.HtmlDecode(noTags);
+        return Regex.Replace(decoded ?? string.Empty, "\\s+", " ").Trim();
+    }
+
+    private void NavigateToEntry(int? entryId)
+    {
+        if (entryId.HasValue)
+        {
+            Navigation.NavigateTo($"/journals/{entryId.Value}");
+        }
     }
 }

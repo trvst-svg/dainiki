@@ -1,4 +1,8 @@
 @page "/journals"
+@inject JournalService JournalService
+@inject DainikiDbContext DbContext
+@inject AppState AppState
+@inject NavigationManager Navigation
 
 <div class="page-header">
     <div>
@@ -7,7 +11,7 @@
     <div class="toolbar">
         <div class="toolbar-group">
             <label class="form-label">@viewLabel</label>
-            <select class="select" @bind="viewChoice">
+            <select class="select" @bind="viewChoice" @bind:after="OnViewChanged">
                 @foreach (var view in viewOptions)
                 {
                     <option value="@view">@view</option>
@@ -33,21 +37,21 @@
         </div>
         <div class="form-field">
             <label class="form-label">Primary mood</label>
-            <select class="select" @bind="selectedMood">
+            <select class="select" @bind="selectedMoodId">
                 <option value="">Any</option>
                 @foreach (var mood in allMoods)
                 {
-                    <option value="@mood">@mood</option>
+                    <option value="@mood.mood_id">@mood.mood_name</option>
                 }
             </select>
         </div>
         <div class="form-field">
             <label class="form-label">Tags</label>
-            <select class="select" @bind="selectedTag">
+            <select class="select" @bind="selectedTagId">
                 <option value="">Any</option>
                 @foreach (var tag in allTags)
                 {
-                    <option value="@tag">@tag</option>
+                    <option value="@tag.tag_id">@tag.tag_name</option>
                 }
             </select>
         </div>
@@ -60,31 +64,41 @@
         </div>
     </div>
     <div style="margin-top: 12px;">
-        <button class="btn btn-secondary" type="button">@resetLabel</button>
+        <div class="btn-row">
+            <button class="btn btn-primary" type="button" @onclick="ApplyFilters">@applyLabel</button>
+            <button class="btn btn-secondary" type="button" @onclick="ResetFilters">@resetLabel</button>
+        </div>
     </div>
 </details>
 
 <div class="card">
-    <div class="table-list">
-        @foreach (var entry in entries)
-        {
-            <div class="list-item">
-                <div>
-                    <NavLink class="timeline-title" href="@($"journals/{entry.Id}")">@entry.Title</NavLink>
-                    <div class="list-meta">@entry.DateDisplay · @entry.Mood · @entry.Tags</div>
+    @if (entries.Count == 0)
+    {
+        <p class="list-meta">No entries match the current filters.</p>
+    }
+    else
+    {
+        <div class="table-list">
+            @foreach (var entry in entries)
+            {
+                <div class="list-item">
+                    <div>
+                        <NavLink class="timeline-title" href="@($"journals/{entry.Id}")">@entry.Title</NavLink>
+                        <div class="list-meta">@entry.DateDisplay · @entry.Mood · @entry.Tags</div>
+                    </div>
+                    <div class="btn-row">
+                        <NavLink class="btn btn-ghost" href="@($"newjournal/{entry.Id}")">@editLabel</NavLink>
+                        <button class="btn btn-danger" type="button" @onclick="() => DeleteEntry(entry.Id)">@deleteLabel</button>
+                    </div>
                 </div>
-                <div class="btn-row">
-                    <NavLink class="btn btn-ghost" href="newjournal">@editLabel</NavLink>
-                    <button class="btn btn-danger" type="button">@deleteLabel</button>
-                </div>
-            </div>
-        }
-    </div>
+            }
+        </div>
+    }
 
     <div class="btn-row" style="justify-content: space-between; margin-top: 16px;">
-        <button class="btn btn-ghost" type="button" disabled="@prevDisabled">@prevLabel</button>
+        <button class="btn btn-ghost" type="button" disabled="@prevDisabled" @onclick="PrevPage">@prevLabel</button>
         <span class="list-meta">@pageMeta</span>
-        <button class="btn btn-ghost" type="button" disabled="@nextDisabled">@nextLabel</button>
+        <button class="btn btn-ghost" type="button" disabled="@nextDisabled" @onclick="NextPage">@nextLabel</button>
     </div>
 </div>
 
@@ -97,6 +111,7 @@
     private string viewLabel = "Change view";
     private string searchLabel = "Search";
     private string filterLabel = "Filters";
+    private string applyLabel = "Apply filters";
     private string resetLabel = "Reset filters";
     private string editLabel = "Edit";
     private string deleteLabel = "Delete";
@@ -107,39 +122,153 @@
 
     private string viewChoice = "List";
     private string searchTerm = string.Empty;
-    private string selectedMood = string.Empty;
-    private string selectedTag = string.Empty;
+    private int? selectedMoodId;
+    private int? selectedTagId;
     private DateTime? startDate;
     private DateTime? endDate;
     private bool pinnedOnly;
 
     private bool prevDisabled = true;
     private bool nextDisabled;
+    private int pageNumber = 1;
+    private const int pageSize = 6;
+    private int totalCount;
 
     private List<string> viewOptions = new()
     {
         "List", "Calendar", "Tags"
     };
 
-    private List<string> allMoods = new()
-    {
-        "Happy", "Excited", "Relaxed", "Grateful", "Confident",
-        "Calm", "Thoughtful", "Curious", "Nostalgic", "Bored",
-        "Sad", "Angry", "Stressed", "Lonely", "Anxious"
-    };
+    private List<Mood> allMoods = new();
+    private List<Tag> allTags = new();
 
-    private List<string> allTags = new()
-    {
-        "Work", "Health", "Travel", "Fitness", "Reflection", "Family", "Studies", "Projects"
-    };
-
-    private List<JournalSummary> entries = new()
-    {
-        new JournalSummary(1, "Journal 1", "Jan 06, 2026", "Relaxed", "Work, Reflection"),
-        new JournalSummary(2, "Journal 2", "Jan 05, 2026", "Grateful", "Family"),
-        new JournalSummary(3, "Journal 3", "Jan 04, 2026", "Focused", "Projects"),
-        new JournalSummary(4, "Journal 4", "Jan 03, 2026", "Calm", "Health")
-    };
+    private List<JournalSummary> entries = new();
 
     private record JournalSummary(int Id, string Title, string DateDisplay, string Mood, string Tags);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState.CurrentUser == null)
+        {
+            return;
+        }
+
+        allMoods = await DbContext.Moods
+            .OrderBy(mood => mood.mood_name)
+            .ToListAsync();
+
+        allTags = await DbContext.Tags
+            .OrderBy(tag => tag.tag_name)
+            .ToListAsync();
+
+        await LoadEntriesAsync();
+    }
+
+    private async Task LoadEntriesAsync()
+    {
+        if (AppState.CurrentUser == null)
+        {
+            return;
+        }
+
+        var filters = new JournalService.JournalFilters(
+            startDate,
+            endDate,
+            selectedMoodId,
+            selectedTagId,
+            searchTerm,
+            pinnedOnly);
+
+        var result = await JournalService.GetJournalsAsync(
+            AppState.CurrentUser.username,
+            filters,
+            pageNumber,
+            pageSize);
+
+        totalCount = result.TotalCount;
+        entries = result.Items.Select(entry =>
+        {
+            var primaryMood = entry.JournalMoods.FirstOrDefault(mood => mood.mood_role == "Primary")?.mood?.mood_name ?? "No mood";
+            var tags = string.Join(", ", entry.JournalTags
+                .Select(tag => tag.tag?.tag_name)
+                .Where(name => !string.IsNullOrWhiteSpace(name)));
+
+            return new JournalSummary(
+                entry.journal_id,
+                entry.journal_title,
+                entry.journal_date.ToString("MMM dd, yyyy"),
+                primaryMood,
+                string.IsNullOrWhiteSpace(tags) ? "No tags" : tags);
+        }).ToList();
+
+        prevDisabled = pageNumber <= 1;
+        nextDisabled = pageNumber * pageSize >= totalCount;
+        var pageCount = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+        pageMeta = $"Page {pageNumber} of {pageCount}";
+    }
+
+    private async Task ApplyFilters()
+    {
+        pageNumber = 1;
+        await LoadEntriesAsync();
+    }
+
+    private async Task ResetFilters()
+    {
+        searchTerm = string.Empty;
+        selectedMoodId = null;
+        selectedTagId = null;
+        startDate = null;
+        endDate = null;
+        pinnedOnly = false;
+        pageNumber = 1;
+        await LoadEntriesAsync();
+    }
+
+    private async Task PrevPage()
+    {
+        if (pageNumber <= 1)
+        {
+            return;
+        }
+
+        pageNumber--;
+        await LoadEntriesAsync();
+    }
+
+    private async Task NextPage()
+    {
+        if (pageNumber * pageSize >= totalCount)
+        {
+            return;
+        }
+
+        pageNumber++;
+        await LoadEntriesAsync();
+    }
+
+    private async Task DeleteEntry(int id)
+    {
+        if (AppState.CurrentUser == null)
+        {
+            return;
+        }
+
+        await JournalService.DeleteJournalAsync(id, AppState.CurrentUser.username);
+        await LoadEntriesAsync();
+    }
+
+    private void OnViewChanged()
+    {
+        if (viewChoice == "Calendar")
+        {
+            Navigation.NavigateTo("/calendar");
+            return;
+        }
+
+        if (viewChoice == "Tags")
+        {
+            Navigation.NavigateTo("/tags");
+        }
+    }
 }
