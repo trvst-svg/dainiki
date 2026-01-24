@@ -18,11 +18,40 @@ public class DainikiDbContext : DbContext
         modelBuilder.Entity<Users>()
             .HasKey(user => user.username);
 
+        modelBuilder.Entity<Users>()
+            .Property(user => user.username)
+            .HasMaxLength(64)
+            .IsRequired();
+
+        modelBuilder.Entity<Users>()
+            .Property(user => user.password_hash)
+            .IsRequired();
+
+        modelBuilder.Entity<Category>()
+            .Property(category => category.category_name)
+            .HasMaxLength(64)
+            .IsRequired();
+
+        modelBuilder.Entity<Category>()
+            .Property(category => category.category_type)
+            .HasMaxLength(16)
+            .IsRequired();
+
         modelBuilder.Entity<Category>()
             .HasKey(category => category.category_id);
 
         modelBuilder.Entity<Tag>()
+            .Property(tag => tag.tag_name)
+            .HasMaxLength(64)
+            .IsRequired();
+
+        modelBuilder.Entity<Tag>()
             .HasKey(tag => tag.tag_id);
+
+        modelBuilder.Entity<Mood>()
+            .Property(mood => mood.mood_name)
+            .HasMaxLength(64)
+            .IsRequired();
 
         modelBuilder.Entity<Mood>()
             .HasKey(mood => mood.mood_id);
@@ -30,11 +59,41 @@ public class DainikiDbContext : DbContext
         modelBuilder.Entity<Journal>()
             .HasKey(journal => journal.journal_id);
 
+        modelBuilder.Entity<Journal>()
+            .Property(journal => journal.journal_title)
+            .HasMaxLength(200)
+            .IsRequired();
+
+        modelBuilder.Entity<Journal>()
+            .Property(journal => journal.journal_content_url)
+            .IsRequired();
+
+        modelBuilder.Entity<Journal>()
+            .Property(journal => journal.created_at)
+            .IsRequired();
+
+        modelBuilder.Entity<Journal>()
+            .Property(journal => journal.updated_at)
+            .IsRequired();
+
+        modelBuilder.Entity<Journal>()
+            .Property(journal => journal.is_pinned)
+            .HasDefaultValue(false);
+
+        modelBuilder.Entity<Journal>()
+            .HasIndex(journal => new { journal.user_id, journal.journal_date })
+            .IsUnique();
+
         modelBuilder.Entity<JournalTag>()
             .HasKey(journalTag => new { journalTag.journal_id, journalTag.tag_id });
 
         modelBuilder.Entity<JournalMood>()
             .HasKey(journalMood => new { journalMood.journal_id, journalMood.mood_id });
+
+        modelBuilder.Entity<JournalMood>()
+            .Property(journalMood => journalMood.mood_role)
+            .HasMaxLength(16)
+            .IsRequired();
 
         modelBuilder.Entity<Journal>()
             .HasOne(journal => journal.user)
