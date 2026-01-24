@@ -6,5 +6,6 @@ public class DainikiDbContext : DbContext
 {
     public DainikiDbContext(DbContextOptions<DainikiDbContext> options) : base(options)
     {
+        
     }
 }
