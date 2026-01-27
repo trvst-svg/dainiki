@@ -23,12 +23,12 @@
     <div class="card reveal" style="--delay: 0.05s;">
         <h3 class="section-title">@securityTitle</h3>
         <p class="auth-helper">@securityDescription</p>
-        <NavLink class="btn btn-secondary" href="security">@openSecurityLabel</NavLink>
+        <NavLink class="btn btn-secondary" href="/security">@openSecurityLabel</NavLink>
     </div>
     <div class="card reveal" style="--delay: 0.1s;">
         <h3 class="section-title">@exportTitle</h3>
         <p class="auth-helper">@exportDescription</p>
-        <NavLink class="btn btn-secondary" href="export">@openExportLabel</NavLink>
+        <NavLink class="btn btn-secondary" href="/export">@openExportLabel</NavLink>
     </div>
 </div>
 
@@ -65,11 +65,11 @@
     private string themeLabel = "Change theme";
     private List<string> themes = new()
     {
-        "Daylight",
-        "Nocturne",
-        "Dusk"
+        "Warm",
+        "Dark",
+        "Pacific"
     };
-    private string selectedTheme = "Daylight";
+    private string selectedTheme = "Warm";
 
     private string securityTitle = "Security";
     private string securityDescription = "Manage password, PIN, and privacy modes.";
@@ -104,7 +104,8 @@
         dataLocationValue = Microsoft.Maui.Storage.FileSystem.AppDataDirectory;
         if (AppSettings.CurrentUser?.theme != null)
         {
-            selectedTheme = AppSettings.CurrentUser.theme;
+            var normalized = ThemeHelpers.NormalizeThemeName(AppSettings.CurrentUser.theme);
+            selectedTheme = string.IsNullOrWhiteSpace(normalized) ? selectedTheme : normalized;
         }
     }
 

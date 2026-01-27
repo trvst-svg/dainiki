@@ -4,32 +4,58 @@
 @inject Services.ISettings Settings
 @inject IAnalyticsService AnalyticsService
 
-<div class="center-stack">
+<div class="page-header">
     <div>
-        <h1 class="page-title">Welcome back @username</h1>
+        <h1 class="page-title">Welcome back, @username</h1>
+        <p class="page-subtitle">@welcomeMessage</p>
     </div>
+    <div class="btn-row">
+        <button class="btn btn-primary" @onclick="newButton">Write today's dainiki</button>
+    </div>
+</div>
 
-    <div class="streak-panel">
-        <div class="streak-label">Streaks</div>
+<div class="grid-2">
+    <div class="card reveal" style="--delay: 0.05s;">
+        <h3 class="section-title">Streak overview</h3>
         @if (metrics == null)
         {
-            <div class="list-meta">No streak data yet.</div>
+            <p class="list-meta">No streak data yet. Start your first entry to build momentum.</p>
         }
         else
         {
-            <div class="list-meta">Current streak: @metrics.CurrentStreak day(s)</div>
-            <div class="list-meta">Longest streak: @metrics.LongestStreak day(s)</div>
-            <div class="list-meta">Missed days: @metrics.MissedDays</div>
+            <div class="streak-grid">
+                <div class="stat-box">
+                    <div class="stat-label">Current streak</div>
+                    <div class="stat-value">@metrics.CurrentStreak day(s)</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Longest streak</div>
+                    <div class="stat-value">@metrics.LongestStreak day(s)</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Missed days</div>
+                    <div class="stat-value">@metrics.MissedDays</div>
+                </div>
+            </div>
         }
     </div>
 
-    <div class="btn-row" style="justify-content: center;">
-        <button class="btn btn-primary" @onclick="newButton">Write today's dainiki</button>
+    <div class="card reveal" style="--delay: 0.1s;">
+        <h3 class="section-title">Welcome notes</h3>
+        <p class="auth-helper">@welcomeTip</p>
+        <div class="btn-row">
+            <button class="btn btn-secondary" @onclick="viewJournals">View journals</button>
+            <button class="btn btn-ghost" @onclick="viewAnalytics">Open analytics</button>
+        </div>
     </div>
 </div>
 
 @code{
     private string username => Settings.CurrentUser?.username ?? "friend";
+    private string welcomeMessage => Settings.CurrentUser == null
+        ? "Create an account to track streaks, moods, and themes."
+        : "Here's a snapshot of your journaling rhythm today.";
+    private string welcomeTip = "Your entries stay on this device unless you export them.";
     private DashboardMetrics? metrics;
 
     protected override async Task OnInitializedAsync()
@@ -42,6 +68,16 @@
 
     void newButton()
     {
-        Navigation.NavigateTo("newjournal");
+        Navigation.NavigateTo("/newjournal");
+    }
+
+    private void viewJournals()
+    {
+        Navigation.NavigateTo("/journals");
+    }
+
+    private void viewAnalytics()
+    {
+        Navigation.NavigateTo("/dashboard");
     }
 }

@@ -19,7 +19,6 @@ namespace dainiki.Components.Services
             int totalCount = await query.CountAsync();
             List<Journal> items = await query
                 .OrderByDescending(journal => journal.journal_date)
-                .ThenByDescending(journal => journal.journal_time)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -33,7 +32,6 @@ namespace dainiki.Components.Services
 
             return await BuildQuery(userId, filters)
                 .OrderBy(journal => journal.journal_date)
-                .ThenBy(journal => journal.journal_time)
                 .ToListAsync();
         }
 
@@ -44,7 +42,7 @@ namespace dainiki.Components.Services
                 .Include(journal => journal.JournalTags)
                     .ThenInclude(journalTag => journalTag.tag)
                 .Include(journal => journal.JournalMoods)
-                    .ThenInclude(journalMood => journalMood.mood)
+                    .ThenInclude(journalMood => journalMood.mood!)
                         .ThenInclude(mood => mood.category)
                 .FirstOrDefaultAsync(journal => journal.journal_id == journalId && journal.user_id == userId);
         }
@@ -212,7 +210,7 @@ namespace dainiki.Components.Services
                 .Include(journal => journal.JournalTags)
                     .ThenInclude(journalTag => journalTag.tag)
                 .Include(journal => journal.JournalMoods)
-                    .ThenInclude(journalMood => journalMood.mood)
+                    .ThenInclude(journalMood => journalMood.mood!)
                         .ThenInclude(mood => mood.category)
                 .Where(journal => journal.user_id == userId);
 

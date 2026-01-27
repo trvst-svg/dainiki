@@ -25,7 +25,7 @@
 
         <div class="auth-footer">
             <span class="auth-helper">New here?</span>
-            <NavLink href="signup">Signup</NavLink>
+            <NavLink href="/signup">Signup</NavLink>
         </div>
 
         @if (!string.IsNullOrWhiteSpace(message))
@@ -50,6 +50,6 @@
         }
 
         message = string.Empty;
-        Navigation.NavigateTo("home");
+        Navigation.NavigateTo("/home");
     }
 }

@@ -23,7 +23,7 @@ namespace dainiki.Components.Services
 
             IQueryable<Journal> query = _context.Journals
                 .Include(journal => journal.JournalMoods)
-                    .ThenInclude(journalMood => journalMood.mood)
+                    .ThenInclude(journalMood => journalMood.mood!)
                         .ThenInclude(mood => mood.category)
                 .Include(journal => journal.JournalTags)
                     .ThenInclude(journalTag => journalTag.tag)
