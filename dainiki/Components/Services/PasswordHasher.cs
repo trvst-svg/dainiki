@@ -1,36 +1,51 @@
-namespace dainiki.Components.Services;
-
-using System.Security.Cryptography;
-
-public static class PasswordHasher
+namespace dainiki.Components.Services
 {
-    private const int Iterations = 100_000;
-    private const int SaltSize = 16;
-    private const int HashSize = 32;
+    using System.Security.Cryptography;
 
-    public static string HashPassword(string password)
+    public static class PasswordHasher
     {
-        var salt = RandomNumberGenerator.GetBytes(SaltSize);
-        var hash = Rfc2898DeriveBytes.Pbkdf2(password, salt, Iterations, HashAlgorithmName.SHA256, HashSize);
-        return $"{Convert.ToBase64String(salt)}:{Convert.ToBase64String(hash)}";
-    }
+        private const int Iterations = 100000;
+        private const int SaltSize = 16;
+        private const int HashSize = 32;
 
-    public static bool VerifyPassword(string password, string storedHash)
-    {
-        if (string.IsNullOrWhiteSpace(storedHash))
+        public static string HashPassword(string password)
         {
-            return false;
+            byte[] salt = RandomNumberGenerator.GetBytes(SaltSize);
+            byte[] hash = Rfc2898DeriveBytes.Pbkdf2(
+                password,
+                salt,
+                Iterations,
+                HashAlgorithmName.SHA256,
+                HashSize);
+
+            string saltText = Convert.ToBase64String(salt);
+            string hashText = Convert.ToBase64String(hash);
+            return saltText + ":" + hashText;
         }
 
-        var parts = storedHash.Split(':');
-        if (parts.Length != 2)
+        public static bool VerifyPassword(string password, string storedHash)
         {
-            return false;
-        }
+            if (string.IsNullOrWhiteSpace(storedHash))
+            {
+                return false;
+            }
 
-        var salt = Convert.FromBase64String(parts[0]);
-        var expected = Convert.FromBase64String(parts[1]);
-        var actual = Rfc2898DeriveBytes.Pbkdf2(password, salt, Iterations, HashAlgorithmName.SHA256, HashSize);
-        return CryptographicOperations.FixedTimeEquals(actual, expected);
+            string[] parts = storedHash.Split(':');
+            if (parts.Length != 2)
+            {
+                return false;
+            }
+
+            byte[] salt = Convert.FromBase64String(parts[0]);
+            byte[] expected = Convert.FromBase64String(parts[1]);
+            byte[] actual = Rfc2898DeriveBytes.Pbkdf2(
+                password,
+                salt,
+                Iterations,
+                HashAlgorithmName.SHA256,
+                HashSize);
+
+            return CryptographicOperations.FixedTimeEquals(actual, expected);
+        }
     }
 }

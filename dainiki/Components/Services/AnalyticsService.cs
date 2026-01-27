@@ -1,204 +1,343 @@
-namespace dainiki.Components.Services;
-
-using dainiki.Components.Models;
-using Microsoft.EntityFrameworkCore;
-
-public class AnalyticsService
+namespace dainiki.Components.Services
 {
-    private readonly DainikiDbContext _context;
+    using dainiki.Components.Models;
+    using Microsoft.EntityFrameworkCore;
 
-    public AnalyticsService(DainikiDbContext context)
+    public class AnalyticsService : IAnalyticsService
     {
-        _context = context;
-    }
+        private readonly DainikiDbContext _context;
 
-    public record WordCountPoint(DateTime Date, int WordCount);
-
-    public record DashboardMetrics(
-        int TotalEntries,
-        int CurrentStreak,
-        int LongestStreak,
-        int MissedDays,
-        Journal? HighestWordCountEntry,
-        IReadOnlyList<string> FrequentMoods,
-        IReadOnlyList<string> FrequentTags,
-        IReadOnlyDictionary<string, int> TagBreakdown,
-        IReadOnlyDictionary<string, int> MoodDistribution,
-        IReadOnlyList<WordCountPoint> WordCountTrend);
-
-    public async Task<DashboardMetrics> GetMetricsAsync(string userId, DateTime? startDate = null, DateTime? endDate = null)
-    {
-        if (startDate.HasValue && endDate.HasValue && endDate < startDate)
+        public AnalyticsService(DainikiDbContext context)
         {
-            (startDate, endDate) = (endDate, startDate);
+            _context = context;
         }
 
-        var query = _context.Journals
-            .Include(journal => journal.JournalMoods)
-                .ThenInclude(journalMood => journalMood.mood)
-                    .ThenInclude(mood => mood!.category)
-            .Include(journal => journal.JournalTags)
-                .ThenInclude(journalTag => journalTag.tag)
-            .Where(journal => journal.user_id == userId);
-
-        if (startDate.HasValue)
+        public async Task<DashboardMetrics> GetMetricsAsync(string userId, DateTime? startDate = null, DateTime? endDate = null)
         {
-            var start = startDate.Value.Date;
-            query = query.Where(journal => journal.journal_date >= start);
-        }
-
-        if (endDate.HasValue)
-        {
-            var end = endDate.Value.Date;
-            query = query.Where(journal => journal.journal_date <= end);
-        }
-
-        var journals = await query.ToListAsync();
-
-        var totalEntries = journals.Count;
-        var highestWordCountEntry = journals.OrderByDescending(journal => journal.word_count).FirstOrDefault();
-
-        var entryDates = journals
-            .Select(journal => journal.journal_date.Date)
-            .Distinct()
-            .OrderBy(date => date)
-            .ToList();
-
-        var longestStreak = CalculateLongestStreak(entryDates);
-        var currentStreak = CalculateCurrentStreak(entryDates);
-        var missedDays = CalculateMissedDays(entryDates, startDate, endDate);
-
-        var primaryMoods = journals
-            .SelectMany(journal => journal.JournalMoods
-                .Where(journalMood => journalMood.mood_role == "Primary")
-                .Select(journalMood => journalMood.mood))
-            .Where(mood => mood != null)
-            .Select(mood => mood!);
-
-        var frequentMoods = primaryMoods
-            .GroupBy(mood => mood.mood_name)
-            .OrderByDescending(group => group.Count())
-            .ThenBy(group => group.Key)
-            .Take(3)
-            .Select(group => $"{group.Key} ({group.Count()})")
-            .ToList();
-
-        var moodDistribution = primaryMoods
-            .GroupBy(mood => mood.category?.category_name ?? "Uncategorized")
-            .OrderByDescending(group => group.Count())
-            .ToDictionary(group => group.Key, group => group.Count());
-
-        var frequentTags = journals
-            .SelectMany(journal => journal.JournalTags)
-            .Where(journalTag => journalTag.tag != null)
-            .Select(journalTag => journalTag.tag!.tag_name)
-            .GroupBy(tag => tag)
-            .OrderByDescending(group => group.Count())
-            .ThenBy(group => group.Key)
-            .Take(5)
-            .Select(group => $"{group.Key} ({group.Count()})")
-            .ToList();
-
-        var tagBreakdown = journals
-            .SelectMany(journal => journal.JournalTags)
-            .Where(journalTag => journalTag.tag != null)
-            .Select(journalTag => journalTag.tag!.tag_name)
-            .GroupBy(tag => tag)
-            .OrderByDescending(group => group.Count())
-            .ThenBy(group => group.Key)
-            .ToDictionary(group => group.Key, group => group.Count());
-
-        var wordCountTrend = journals
-            .GroupBy(journal => journal.journal_date.Date)
-            .OrderBy(group => group.Key)
-            .Select(group => new WordCountPoint(group.Key, group.Sum(journal => journal.word_count)))
-            .ToList();
-
-        return new DashboardMetrics(
-            totalEntries,
-            currentStreak,
-            longestStreak,
-            missedDays,
-            highestWordCountEntry,
-            frequentMoods,
-            frequentTags,
-            tagBreakdown,
-            moodDistribution,
-            wordCountTrend);
-    }
-
-    private static int CalculateLongestStreak(List<DateTime> dates)
-    {
-        if (dates.Count == 0)
-        {
-            return 0;
-        }
-
-        var longest = 1;
-        var current = 1;
-
-        for (var i = 1; i < dates.Count; i++)
-        {
-            if ((dates[i] - dates[i - 1]).Days == 1)
+            if (startDate.HasValue && endDate.HasValue && endDate.Value < startDate.Value)
             {
-                current++;
-                longest = Math.Max(longest, current);
+                DateTime? temp = startDate;
+                startDate = endDate;
+                endDate = temp;
             }
-            else
+
+            IQueryable<Journal> query = _context.Journals
+                .Include(journal => journal.JournalMoods)
+                    .ThenInclude(journalMood => journalMood.mood)
+                        .ThenInclude(mood => mood.category)
+                .Include(journal => journal.JournalTags)
+                    .ThenInclude(journalTag => journalTag.tag)
+                .Where(journal => journal.user_id == userId);
+
+            if (startDate.HasValue)
             {
-                current = 1;
+                DateTime start = startDate.Value.Date;
+                query = query.Where(journal => journal.journal_date >= start);
             }
+
+            if (endDate.HasValue)
+            {
+                DateTime end = endDate.Value.Date;
+                query = query.Where(journal => journal.journal_date <= end);
+            }
+
+            List<Journal> journals = await query.ToListAsync();
+
+            int totalEntries = journals.Count;
+            Journal? highestWordCountEntry = null;
+            int highestWordCount = -1;
+            foreach (Journal journal in journals)
+            {
+                if (journal.word_count > highestWordCount)
+                {
+                    highestWordCount = journal.word_count;
+                    highestWordCountEntry = journal;
+                }
+            }
+
+            HashSet<DateTime> uniqueDates = new HashSet<DateTime>();
+            foreach (Journal journal in journals)
+            {
+                uniqueDates.Add(journal.journal_date.Date);
+            }
+
+            List<DateTime> entryDates = uniqueDates.ToList();
+            entryDates.Sort();
+
+            int longestStreak = CalculateLongestStreak(entryDates);
+            int currentStreak = CalculateCurrentStreak(entryDates);
+            int missedDays = CalculateMissedDays(entryDates, startDate, endDate);
+
+            Dictionary<string, int> moodCounts = new Dictionary<string, int>();
+            Dictionary<string, int> moodCategoryCounts = new Dictionary<string, int>();
+
+            foreach (Journal journal in journals)
+            {
+                foreach (JournalMood journalMood in journal.JournalMoods)
+                {
+                    if (journalMood.mood_role != "Primary")
+                    {
+                        continue;
+                    }
+
+                    Mood? mood = journalMood.mood;
+                    if (mood == null)
+                    {
+                        continue;
+                    }
+
+                    string moodName = mood.mood_name;
+                    if (!moodCounts.ContainsKey(moodName))
+                    {
+                        moodCounts[moodName] = 0;
+                    }
+                    moodCounts[moodName]++;
+
+                    string categoryName = "Uncategorized";
+                    if (mood.category != null && !string.IsNullOrWhiteSpace(mood.category.category_name))
+                    {
+                        categoryName = mood.category.category_name;
+                    }
+
+                    if (!moodCategoryCounts.ContainsKey(categoryName))
+                    {
+                        moodCategoryCounts[categoryName] = 0;
+                    }
+                    moodCategoryCounts[categoryName]++;
+                }
+            }
+
+            List<string> frequentMoods = BuildTopList(moodCounts, 3);
+            IReadOnlyDictionary<string, int> moodDistribution = new Dictionary<string, int>(moodCategoryCounts);
+
+            Dictionary<string, int> tagCounts = new Dictionary<string, int>();
+            foreach (Journal journal in journals)
+            {
+                foreach (JournalTag journalTag in journal.JournalTags)
+                {
+                    if (journalTag.tag == null)
+                    {
+                        continue;
+                    }
+
+                    string tagName = journalTag.tag.tag_name;
+                    if (!tagCounts.ContainsKey(tagName))
+                    {
+                        tagCounts[tagName] = 0;
+                    }
+                    tagCounts[tagName]++;
+                }
+            }
+
+            List<string> frequentTags = BuildTopList(tagCounts, 5);
+            IReadOnlyDictionary<string, int> tagBreakdown = new Dictionary<string, int>(tagCounts);
+
+            Dictionary<DateTime, int> wordCountByDate = new Dictionary<DateTime, int>();
+            foreach (Journal journal in journals)
+            {
+                DateTime date = journal.journal_date.Date;
+                if (!wordCountByDate.ContainsKey(date))
+                {
+                    wordCountByDate[date] = 0;
+                }
+                wordCountByDate[date] += journal.word_count;
+            }
+
+            List<DateTime> wordCountDates = wordCountByDate.Keys.ToList();
+            wordCountDates.Sort();
+
+            List<WordCountPoint> wordCountTrend = new List<WordCountPoint>();
+            foreach (DateTime date in wordCountDates)
+            {
+                wordCountTrend.Add(new WordCountPoint(date, wordCountByDate[date]));
+            }
+
+            return new DashboardMetrics(
+                totalEntries,
+                currentStreak,
+                longestStreak,
+                missedDays,
+                highestWordCountEntry,
+                frequentMoods,
+                frequentTags,
+                tagBreakdown,
+                moodDistribution,
+                wordCountTrend);
         }
 
-        return longest;
+        private static List<string> BuildTopList(Dictionary<string, int> counts, int take)
+        {
+            List<KeyValuePair<string, int>> list = new List<KeyValuePair<string, int>>(counts);
+            list.Sort((left, right) =>
+            {
+                int countCompare = right.Value.CompareTo(left.Value);
+                if (countCompare != 0)
+                {
+                    return countCompare;
+                }
+
+                return string.Compare(left.Key, right.Key, StringComparison.Ordinal);
+            });
+
+            List<string> results = new List<string>();
+            int limit = Math.Min(take, list.Count);
+            for (int i = 0; i < limit; i++)
+            {
+                KeyValuePair<string, int> entry = list[i];
+                results.Add(entry.Key + " (" + entry.Value + ")");
+            }
+
+            return results;
+        }
+
+        private static int CalculateLongestStreak(List<DateTime> dates)
+        {
+            if (dates.Count == 0)
+            {
+                return 0;
+            }
+
+            int longest = 1;
+            int current = 1;
+
+            for (int i = 1; i < dates.Count; i++)
+            {
+                if ((dates[i] - dates[i - 1]).Days == 1)
+                {
+                    current++;
+                    if (current > longest)
+                    {
+                        longest = current;
+                    }
+                }
+                else
+                {
+                    current = 1;
+                }
+            }
+
+            return longest;
+        }
+
+        private static int CalculateCurrentStreak(List<DateTime> dates)
+        {
+            if (dates.Count == 0)
+            {
+                return 0;
+            }
+
+            HashSet<DateTime> dateSet = new HashSet<DateTime>(dates);
+            int streak = 0;
+            DateTime cursor = DateTime.Today;
+
+            while (dateSet.Contains(cursor))
+            {
+                streak++;
+                cursor = cursor.AddDays(-1);
+            }
+
+            return streak;
+        }
+
+        private static int CalculateMissedDays(List<DateTime> dates, DateTime? startDate, DateTime? endDate)
+        {
+            if (dates.Count == 0)
+            {
+                return 0;
+            }
+
+            DateTime start = (startDate ?? dates[0]).Date;
+            DateTime end = (endDate ?? dates[dates.Count - 1]).Date;
+
+            if (end < start)
+            {
+                DateTime temp = start;
+                start = end;
+                end = temp;
+            }
+
+            int totalDays = (end - start).Days + 1;
+            HashSet<DateTime> dateSet = new HashSet<DateTime>(dates);
+            int present = 0;
+
+            for (DateTime day = start; day <= end; day = day.AddDays(1))
+            {
+                if (dateSet.Contains(day))
+                {
+                    present++;
+                }
+            }
+
+            int missed = totalDays - present;
+            if (missed < 0)
+            {
+                missed = 0;
+            }
+
+            return missed;
+        }
     }
 
-    private static int CalculateCurrentStreak(List<DateTime> dates)
+    public class WordCountPoint
     {
-        if (dates.Count == 0)
+        public DateTime Date { get; set; }
+        public int WordCount { get; set; }
+
+        public WordCountPoint()
         {
-            return 0;
         }
 
-        var dateSet = new HashSet<DateTime>(dates);
-        var streak = 0;
-        var cursor = DateTime.Today;
-
-        while (dateSet.Contains(cursor))
+        public WordCountPoint(DateTime date, int wordCount)
         {
-            streak++;
-            cursor = cursor.AddDays(-1);
+            Date = date;
+            WordCount = wordCount;
         }
-
-        return streak;
     }
 
-    private static int CalculateMissedDays(List<DateTime> dates, DateTime? startDate, DateTime? endDate)
+    public class DashboardMetrics
     {
-        if (dates.Count == 0)
+        public int TotalEntries { get; set; }
+        public int CurrentStreak { get; set; }
+        public int LongestStreak { get; set; }
+        public int MissedDays { get; set; }
+        public Journal? HighestWordCountEntry { get; set; }
+        public IReadOnlyList<string> FrequentMoods { get; set; }
+        public IReadOnlyList<string> FrequentTags { get; set; }
+        public IReadOnlyDictionary<string, int> TagBreakdown { get; set; }
+        public IReadOnlyDictionary<string, int> MoodDistribution { get; set; }
+        public IReadOnlyList<WordCountPoint> WordCountTrend { get; set; }
+
+        public DashboardMetrics()
         {
-            return 0;
+            FrequentMoods = new List<string>();
+            FrequentTags = new List<string>();
+            TagBreakdown = new Dictionary<string, int>();
+            MoodDistribution = new Dictionary<string, int>();
+            WordCountTrend = new List<WordCountPoint>();
         }
 
-        var start = (startDate ?? dates.First()).Date;
-        var end = (endDate ?? dates.Last()).Date;
-        if (end < start)
+        public DashboardMetrics(
+            int totalEntries,
+            int currentStreak,
+            int longestStreak,
+            int missedDays,
+            Journal? highestWordCountEntry,
+            IReadOnlyList<string> frequentMoods,
+            IReadOnlyList<string> frequentTags,
+            IReadOnlyDictionary<string, int> tagBreakdown,
+            IReadOnlyDictionary<string, int> moodDistribution,
+            IReadOnlyList<WordCountPoint> wordCountTrend)
         {
-            (start, end) = (end, start);
+            TotalEntries = totalEntries;
+            CurrentStreak = currentStreak;
+            LongestStreak = longestStreak;
+            MissedDays = missedDays;
+            HighestWordCountEntry = highestWordCountEntry;
+            FrequentMoods = frequentMoods;
+            FrequentTags = frequentTags;
+            TagBreakdown = tagBreakdown;
+            MoodDistribution = moodDistribution;
+            WordCountTrend = wordCountTrend;
         }
-
-        var totalDays = (end - start).Days + 1;
-        var dateSet = new HashSet<DateTime>(dates);
-        var present = 0;
-
-        for (var day = start; day <= end; day = day.AddDays(1))
-        {
-            if (dateSet.Contains(day))
-            {
-                present++;
-            }
-        }
-
-        return Math.Max(totalDays - present, 0);
     }
 }

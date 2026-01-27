@@ -1,107 +1,122 @@
-namespace dainiki.Components.Services;
-
-using dainiki.Components.Models;
-using Microsoft.EntityFrameworkCore;
-
-public class AuthService
+namespace dainiki.Components.Services
 {
-    private readonly DainikiDbContext _context;
-    private readonly AppState _appState;
+    using dainiki.Components.Models;
+    using Microsoft.EntityFrameworkCore;
 
-    public AuthService(DainikiDbContext context, AppState appState)
+    public class AuthService : IAuthService
     {
-        _context = context;
-        _appState = appState;
-    }
+        private readonly DainikiDbContext _context;
+        private readonly ISettings _settings;
 
-    public async Task<(bool Success, string ErrorMessage)> RegisterAsync(string username, string password)
-    {
-        var normalized = username.Trim();
-        if (string.IsNullOrWhiteSpace(normalized) || string.IsNullOrWhiteSpace(password))
+        public AuthService(DainikiDbContext context, ISettings settings)
         {
-            return (false, "Username and password are required.");
+            _context = context;
+            _settings = settings;
         }
 
-        var exists = await _context.Users.AnyAsync(user => user.username == normalized);
-        if (exists)
+        public async Task<AuthResult> RegisterAsync(string username, string password)
         {
-            return (false, "That username is already registered.");
+            string normalized = string.Empty;
+            if (username != null)
+            {
+                normalized = username.Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(normalized) || string.IsNullOrWhiteSpace(password))
+            {
+                return new AuthResult(false, "Username and password are required.");
+            }
+
+            bool exists = await _context.Users.AnyAsync(user => user.username == normalized);
+            if (exists)
+            {
+                return new AuthResult(false, "That username is already registered.");
+            }
+
+            Users user = new Users
+            {
+                username = normalized,
+                password_hash = PasswordHasher.HashPassword(password),
+                auto_lock = true,
+                hide_preview = false
+            };
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            return new AuthResult(true, string.Empty);
         }
 
-        var user = new Users
+        public async Task<AuthResult> LoginAsync(string username, string password)
         {
-            username = normalized,
-            password_hash = PasswordHasher.HashPassword(password),
-            auto_lock = true,
-            hide_preview = false
-        };
+            string normalized = string.Empty;
+            if (username != null)
+            {
+                normalized = username.Trim();
+            }
 
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-        return (true, string.Empty);
-    }
+            Users? user = await _context.Users.FirstOrDefaultAsync(candidate => candidate.username == normalized);
+            if (user == null)
+            {
+                return new AuthResult(false, "Invalid username or password.");
+            }
 
-    public async Task<(bool Success, string ErrorMessage)> LoginAsync(string username, string password)
-    {
-        var normalized = username.Trim();
-        var user = await _context.Users.FirstOrDefaultAsync(candidate => candidate.username == normalized);
-        if (user == null)
-        {
-            return (false, "Invalid username or password.");
+            bool matchesPassword = PasswordHasher.VerifyPassword(password, user.password_hash);
+            bool matchesPin = false;
+            if (!string.IsNullOrWhiteSpace(user.pin_hash))
+            {
+                matchesPin = PasswordHasher.VerifyPassword(password, user.pin_hash);
+            }
+
+            if (!matchesPassword && !matchesPin)
+            {
+                return new AuthResult(false, "Invalid username or password.");
+            }
+
+            _settings.SetUser(user);
+            return new AuthResult(true, string.Empty);
         }
 
-        var matchesPassword = PasswordHasher.VerifyPassword(password, user.password_hash);
-        var matchesPin = !string.IsNullOrWhiteSpace(user.pin_hash) &&
-                         PasswordHasher.VerifyPassword(password, user.pin_hash);
-
-        if (!matchesPassword && !matchesPin)
+        public async Task<AuthResult> UpdatePasswordAsync(string username, string newPassword)
         {
-            return (false, "Invalid username or password.");
+            if (string.IsNullOrWhiteSpace(newPassword))
+            {
+                return new AuthResult(false, "Password cannot be empty.");
+            }
+
+            Users? user = await _context.Users.FirstOrDefaultAsync(candidate => candidate.username == username);
+            if (user == null)
+            {
+                return new AuthResult(false, "User not found.");
+            }
+
+            user.password_hash = PasswordHasher.HashPassword(newPassword);
+            await _context.SaveChangesAsync();
+            return new AuthResult(true, string.Empty);
         }
 
-        _appState.SetUser(user);
-        return (true, string.Empty);
-    }
-
-    public async Task<(bool Success, string ErrorMessage)> UpdatePasswordAsync(string username, string newPassword)
-    {
-        if (string.IsNullOrWhiteSpace(newPassword))
+        public async Task<AuthResult> UpdatePinAsync(string username, string pin)
         {
-            return (false, "Password cannot be empty.");
+            if (string.IsNullOrWhiteSpace(pin))
+            {
+                return new AuthResult(false, "PIN cannot be empty.");
+            }
+
+            Users? user = await _context.Users.FirstOrDefaultAsync(candidate => candidate.username == username);
+            if (user == null)
+            {
+                return new AuthResult(false, "User not found.");
+            }
+
+            user.pin_hash = PasswordHasher.HashPassword(pin);
+            await _context.SaveChangesAsync();
+            return new AuthResult(true, string.Empty);
         }
 
-        var user = await _context.Users.FirstOrDefaultAsync(candidate => candidate.username == username);
-        if (user == null)
+        public Task LogoutAsync()
         {
-            return (false, "User not found.");
+            _settings.SetUser(null);
+            return Task.CompletedTask;
         }
-
-        user.password_hash = PasswordHasher.HashPassword(newPassword);
-        await _context.SaveChangesAsync();
-        return (true, string.Empty);
-    }
-
-    public async Task<(bool Success, string ErrorMessage)> UpdatePinAsync(string username, string pin)
-    {
-        if (string.IsNullOrWhiteSpace(pin))
-        {
-            return (false, "PIN cannot be empty.");
-        }
-
-        var user = await _context.Users.FirstOrDefaultAsync(candidate => candidate.username == username);
-        if (user == null)
-        {
-            return (false, "User not found.");
-        }
-
-        user.pin_hash = PasswordHasher.HashPassword(pin);
-        await _context.SaveChangesAsync();
-        return (true, string.Empty);
-    }
-
-    public Task LogoutAsync()
-    {
-        _appState.SetUser(null);
-        return Task.CompletedTask;
     }
 }

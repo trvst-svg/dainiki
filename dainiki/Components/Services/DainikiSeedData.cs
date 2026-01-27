@@ -1,110 +1,131 @@
-namespace dainiki.Components.Services;
-
-using dainiki.Components.Models;
-using Microsoft.EntityFrameworkCore;
-
-public static class DainikiSeedData
+namespace dainiki.Components.Services
 {
-    public static async Task SeedAsync(DainikiDbContext context)
-    {
-        await EnsureCategoriesAsync(context);
-        await EnsureMoodsAsync(context);
-        await EnsureTagsAsync(context);
-    }
+    using dainiki.Components.Models;
+    using Microsoft.EntityFrameworkCore;
 
-    private static async Task EnsureCategoriesAsync(DainikiDbContext context)
+    public static class DainikiSeedData
     {
-        var moodCategories = new[] { "Positive", "Neutral", "Negative" };
-        var journalCategories = new[] { "Personal", "Work", "Health", "Travel", "Reflection" };
-
-        foreach (var name in moodCategories)
+        public static async Task SeedAsync(DainikiDbContext context)
         {
-            if (!await context.Categories.AnyAsync(category =>
-                    category.category_name == name && category.category_type == "Mood"))
+            await EnsureCategoriesAsync(context);
+            await EnsureMoodsAsync(context);
+            await EnsureTagsAsync(context);
+        }
+
+        private static async Task EnsureCategoriesAsync(DainikiDbContext context)
+        {
+            string[] moodCategories = { "Positive", "Neutral", "Negative" };
+            string[] journalCategories = { "Personal", "Work", "Health", "Travel", "Reflection" };
+
+            foreach (string name in moodCategories)
             {
-                context.Categories.Add(new Category
+                bool exists = await context.Categories.AnyAsync(category =>
+                    category.category_name == name && category.category_type == "Mood");
+
+                if (!exists)
                 {
-                    category_name = name,
-                    category_type = "Mood"
-                });
+                    Category category = new Category
+                    {
+                        category_name = name,
+                        category_type = "Mood"
+                    };
+                    context.Categories.Add(category);
+                }
+            }
+
+            foreach (string name in journalCategories)
+            {
+                bool exists = await context.Categories.AnyAsync(category =>
+                    category.category_name == name && category.category_type == "Journal");
+
+                if (!exists)
+                {
+                    Category category = new Category
+                    {
+                        category_name = name,
+                        category_type = "Journal"
+                    };
+                    context.Categories.Add(category);
+                }
+            }
+
+            if (context.ChangeTracker.HasChanges())
+            {
+                await context.SaveChangesAsync();
             }
         }
 
-        foreach (var name in journalCategories)
+        private static async Task EnsureMoodsAsync(DainikiDbContext context)
         {
-            if (!await context.Categories.AnyAsync(category =>
-                    category.category_name == name && category.category_type == "Journal"))
+            bool hasMoods = await context.Moods.AnyAsync();
+            if (hasMoods)
             {
-                context.Categories.Add(new Category
-                {
-                    category_name = name,
-                    category_type = "Journal"
-                });
+                return;
             }
-        }
 
-        if (context.ChangeTracker.HasChanges())
-        {
+            List<Category> moodCategories = await context.Categories
+                .Where(category => category.category_type == "Mood")
+                .ToListAsync();
+
+            Dictionary<string, int> categoryIds = new Dictionary<string, int>();
+            foreach (Category category in moodCategories)
+            {
+                categoryIds[category.category_name] = category.category_id;
+            }
+
+            List<Mood> moods = new List<Mood>
+            {
+                new Mood { mood_name = "Happy", category_id = categoryIds["Positive"] },
+                new Mood { mood_name = "Excited", category_id = categoryIds["Positive"] },
+                new Mood { mood_name = "Relaxed", category_id = categoryIds["Positive"] },
+                new Mood { mood_name = "Grateful", category_id = categoryIds["Positive"] },
+                new Mood { mood_name = "Confident", category_id = categoryIds["Positive"] },
+                new Mood { mood_name = "Calm", category_id = categoryIds["Neutral"] },
+                new Mood { mood_name = "Thoughtful", category_id = categoryIds["Neutral"] },
+                new Mood { mood_name = "Curious", category_id = categoryIds["Neutral"] },
+                new Mood { mood_name = "Nostalgic", category_id = categoryIds["Neutral"] },
+                new Mood { mood_name = "Bored", category_id = categoryIds["Neutral"] },
+                new Mood { mood_name = "Sad", category_id = categoryIds["Negative"] },
+                new Mood { mood_name = "Angry", category_id = categoryIds["Negative"] },
+                new Mood { mood_name = "Stressed", category_id = categoryIds["Negative"] },
+                new Mood { mood_name = "Lonely", category_id = categoryIds["Negative"] },
+                new Mood { mood_name = "Anxious", category_id = categoryIds["Negative"] }
+            };
+
+            context.Moods.AddRange(moods);
             await context.SaveChangesAsync();
         }
-    }
 
-    private static async Task EnsureMoodsAsync(DainikiDbContext context)
-    {
-        if (await context.Moods.AnyAsync())
+        private static async Task EnsureTagsAsync(DainikiDbContext context)
         {
-            return;
+            bool hasTags = await context.Tags.AnyAsync();
+            if (hasTags)
+            {
+                return;
+            }
+
+            string[] tags =
+            {
+                "Work", "Career", "Studies", "Family", "Friends", "Relationships",
+                "Health", "Fitness", "Personal Growth", "Self-care", "Hobbies", "Travel", "Nature",
+                "Finance", "Spirituality", "Birthday", "Holiday", "Vacation", "Celebration", "Exercise",
+                "Reading", "Writing", "Cooking", "Meditation", "Yoga", "Music", "Shopping", "Parenting",
+                "Projects", "Planning", "Reflection"
+            };
+
+            List<Tag> tagEntities = new List<Tag>();
+            foreach (string tag in tags)
+            {
+                Tag tagEntity = new Tag
+                {
+                    tag_name = tag,
+                    system_tag = true
+                };
+                tagEntities.Add(tagEntity);
+            }
+
+            context.Tags.AddRange(tagEntities);
+            await context.SaveChangesAsync();
         }
-
-        var moodCategories = await context.Categories
-            .Where(category => category.category_type == "Mood")
-            .ToDictionaryAsync(category => category.category_name, category => category.category_id);
-
-        var moods = new List<Mood>
-        {
-            new Mood { mood_name = "Happy", category_id = moodCategories["Positive"] },
-            new Mood { mood_name = "Excited", category_id = moodCategories["Positive"] },
-            new Mood { mood_name = "Relaxed", category_id = moodCategories["Positive"] },
-            new Mood { mood_name = "Grateful", category_id = moodCategories["Positive"] },
-            new Mood { mood_name = "Confident", category_id = moodCategories["Positive"] },
-            new Mood { mood_name = "Calm", category_id = moodCategories["Neutral"] },
-            new Mood { mood_name = "Thoughtful", category_id = moodCategories["Neutral"] },
-            new Mood { mood_name = "Curious", category_id = moodCategories["Neutral"] },
-            new Mood { mood_name = "Nostalgic", category_id = moodCategories["Neutral"] },
-            new Mood { mood_name = "Bored", category_id = moodCategories["Neutral"] },
-            new Mood { mood_name = "Sad", category_id = moodCategories["Negative"] },
-            new Mood { mood_name = "Angry", category_id = moodCategories["Negative"] },
-            new Mood { mood_name = "Stressed", category_id = moodCategories["Negative"] },
-            new Mood { mood_name = "Lonely", category_id = moodCategories["Negative"] },
-            new Mood { mood_name = "Anxious", category_id = moodCategories["Negative"] }
-        };
-
-        context.Moods.AddRange(moods);
-        await context.SaveChangesAsync();
-    }
-
-    private static async Task EnsureTagsAsync(DainikiDbContext context)
-    {
-        if (await context.Tags.AnyAsync())
-        {
-            return;
-        }
-
-        var tags = new[]
-        {
-            "Work", "Career", "Studies", "Family", "Friends", "Relationships",
-            "Health", "Fitness", "Personal Growth", "Self-care", "Hobbies", "Travel", "Nature",
-            "Finance", "Spirituality", "Birthday", "Holiday", "Vacation", "Celebration", "Exercise",
-            "Reading", "Writing", "Cooking", "Meditation", "Yoga", "Music", "Shopping", "Parenting",
-            "Projects", "Planning", "Reflection"
-        };
-
-        context.Tags.AddRange(tags.Select(tag => new Tag
-        {
-            tag_name = tag,
-            system_tag = true
-        }));
-
-        await context.SaveChangesAsync();
     }
 }
