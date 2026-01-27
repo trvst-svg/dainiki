@@ -35,7 +35,7 @@
     {
         get
         {
-            var theme = Settings.CurrentUser?.theme;
+            var theme = ThemeHelpers.NormalizeThemeName(Settings.CurrentUser?.theme);
             return string.IsNullOrWhiteSpace(theme) ? string.Empty : $"theme-{theme.ToLowerInvariant()}";
         }
     }

@@ -15,6 +15,12 @@ namespace dainiki.Components.Services
 
         public void SetUser(Users? user)
         {
+            if (user != null)
+            {
+                var normalized = ThemeHelpers.NormalizeThemeName(user.theme);
+                user.theme = string.IsNullOrWhiteSpace(normalized) ? null : normalized;
+            }
+
             CurrentUser = user;
             NotifyStateChanged();
         }
@@ -38,7 +44,7 @@ namespace dainiki.Components.Services
 
             if (!string.IsNullOrWhiteSpace(theme))
             {
-                CurrentUser.theme = theme;
+                CurrentUser.theme = ThemeHelpers.NormalizeThemeName(theme);
             }
 
             NotifyStateChanged();

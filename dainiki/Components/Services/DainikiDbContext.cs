@@ -5,6 +5,11 @@ namespace dainiki.Components.Services
 
     public class DainikiDbContext : DbContext
     {
+        public DainikiDbContext(DbContextOptions<DainikiDbContext> options)
+            : base(options)
+        {
+        }
+
         public DbSet<Users> Users { get; set; }
         public DbSet<Journal> Journals { get; set; }
         public DbSet<Category> Categories { get; set; }

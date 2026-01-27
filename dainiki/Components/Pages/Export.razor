@@ -25,10 +25,8 @@
             <input class="input" type="date" @bind="endDate" @bind:after="LoadExportDataAsync" />
         </div>
         <div class="form-field">
-            <label class="form-label">Include</label>
-            <label class="toggle"><input type="checkbox" @bind="includeMood" /> Mood tracking</label>
-            <label class="toggle"><input type="checkbox" @bind="includeTags" /> Tags & categories</label>
-            <label class="toggle"><input type="checkbox" @bind="includeAnalytics" @bind:after="LoadExportDataAsync" /> Analytics summary</label>
+            <label class="form-label">Included in PDF</label>
+            <div class="list-meta">Journal content only.</div>
         </div>
     </div>
 
@@ -69,9 +67,6 @@
 @code {
     private DateTime startDate = DateTime.Today.AddDays(-7);
     private DateTime endDate = DateTime.Today;
-    private bool includeMood = true;
-    private bool includeTags = true;
-    private bool includeAnalytics = true;
     private string? message;
     private List<ExportEntry> exportEntries = new List<ExportEntry>();
 
@@ -82,29 +77,7 @@
 
     private string PreviewSections
     {
-        get
-        {
-            List<string> sections = new List<string>();
-            if (includeMood)
-            {
-                sections.Add("Mood tracking");
-            }
-            if (includeTags)
-            {
-                sections.Add("Tags");
-            }
-            if (includeAnalytics)
-            {
-                sections.Add("Analytics");
-            }
-
-            if (sections.Count == 0)
-            {
-                return "None";
-            }
-
-            return string.Join(", ", sections);
-        }
+        get { return "Journal content"; }
     }
 
     protected override async Task OnInitializedAsync()
@@ -128,9 +101,9 @@
                 Settings.CurrentUser.username,
                 startDate,
                 endDate,
-                includeMood,
-                includeTags,
-                includeAnalytics);
+                false,
+                false,
+                false);
 
             message = "Exported to " + filePath;
         }

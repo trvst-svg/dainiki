@@ -2,6 +2,7 @@
 @page "/analytics"
 @inject IAnalyticsService AnalyticsService
 @inject Services.ISettings Settings
+@inject IJSRuntime JS
 
 <div class="page-header">
     <div>
@@ -32,20 +33,14 @@
         <div class="card chart-box">
             <h3 class="section-title">@consistencyLabel</h3>
             <div class="chart-surface">
-                <svg viewBox="0 0 120 80" preserveAspectRatio="none">
-                    <polyline class="chart-line light" points="0,70 20,52 40,58 60,35 80,45 100,28 120,34"></polyline>
-                    <polyline class="chart-line" points="0,62 20,58 40,46 60,24 80,30 100,18 120,22"></polyline>
-                </svg>
+                <canvas id="consistencyChart"></canvas>
             </div>
         </div>
 
         <div class="card chart-box">
             <h3 class="section-title">@wordCountLabel</h3>
             <div class="chart-surface">
-                <svg viewBox="0 0 120 80" preserveAspectRatio="none">
-                    <polyline class="chart-line light" points="0,68 20,60 40,44 60,52 80,32 100,40 120,26"></polyline>
-                    <polyline class="chart-line" points="0,72 20,64 40,52 60,36 80,44 100,30 120,36"></polyline>
-                </svg>
+                <canvas id="wordCountChart"></canvas>
             </div>
             @if (wordCountTrend.Count > 0)
             {
@@ -134,7 +129,7 @@
 @code {
     private string pageTitle = "Dashboard";
     private string pageSubtitle = "Track consistency, streaks, and mood patterns.";
-    private string consistencyLabel = "Journal consistency chart";
+    private string consistencyLabel = "Journal consistency";
     private string wordCountLabel = "Word count history";
 
     private string highestWordCountLabel = "Highest word count";
@@ -161,13 +156,36 @@
 
     private string tagBreakdownLabel = "Tag breakdown";
     private List<string> tagBreakdown = new();
+
     private List<WordCountPoint> wordCountTrend = new List<WordCountPoint>();
     private DateTime? analyticsStartDate = DateTime.Today.AddDays(-30);
     private DateTime? analyticsEndDate = DateTime.Today;
 
+    private List<string> chartLabels = new();
+    private List<int> wordChartValues = new();
+    private List<int> consistencyValues = new();
+    private bool chartsDirty;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadMetricsAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!chartsDirty)
+        {
+            return;
+        }
+
+        chartsDirty = false;
+        await JS.InvokeVoidAsync(
+            "dainikiCharts.renderDashboard",
+            "consistencyChart",
+            "wordCountChart",
+            chartLabels,
+            consistencyValues,
+            wordChartValues);
     }
 
     private async Task ApplyRange()
@@ -209,6 +227,38 @@
         tagBreakdown = metrics.TagBreakdown.Count == 0
             ? new List<string> { "No tag data yet" }
             : metrics.TagBreakdown.Select(entry => $"{entry.Key} ({entry.Value})").ToList();
-        wordCountTrend = metrics.WordCountTrend.TakeLast(6).ToList();
+
+        var fullTrend = metrics.WordCountTrend.ToList();
+        wordCountTrend = fullTrend.TakeLast(6).ToList();
+        BuildChartData(fullTrend);
+
+        chartsDirty = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void BuildChartData(List<WordCountPoint> points)
+    {
+        chartLabels.Clear();
+        wordChartValues.Clear();
+        consistencyValues.Clear();
+
+        var recent = points.Count > 14
+            ? points.Skip(points.Count - 14).ToList()
+            : points;
+
+        if (recent.Count == 0)
+        {
+            chartLabels.Add("No data");
+            wordChartValues.Add(0);
+            consistencyValues.Add(0);
+            return;
+        }
+
+        foreach (var point in recent)
+        {
+            chartLabels.Add(point.Date.ToString("MMM dd"));
+            wordChartValues.Add(point.WordCount);
+            consistencyValues.Add(point.WordCount > 0 ? 1 : 0);
+        }
     }
 }

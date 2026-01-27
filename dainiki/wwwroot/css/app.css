@@ -16,6 +16,13 @@
     --radius-lg: 14px;
     --radius-md: 10px;
     --radius-sm: 8px;
+    --nav-bg: var(--panel);
+    --nav-text: var(--header-text);
+    --nav-border: var(--text);
+    --nav-active-bg: var(--text);
+    --nav-active-text: var(--panel);
+    --header-text: var(--text);
+    --header-subtitle: var(--muted);
 }
 
 * {
@@ -112,11 +119,12 @@ img {
     font-family: "Georgia", serif;
     font-size: 2rem;
     margin: 0;
+    color: var(--header-text);
 }
 
 .page-subtitle {
     margin: 6px 0 0;
-    color: var(--muted);
+    color: var(--header-subtitle);
     max-width: 560px;
 }
 
@@ -637,6 +645,11 @@ img {
     height: 140px;
 }
 
+.chart-surface canvas {
+    width: 100%;
+    height: 160px;
+}
+
 .chart-line {
     fill: none;
     stroke: var(--accent-2);
@@ -723,7 +736,7 @@ img {
     }
 }
 
-.app-shell.theme-nocturne {
+.app-shell.theme-dark {
     --bg: #0f0e0b;
     --bg-2: #16130f;
     --panel: #15120d;
@@ -738,10 +751,17 @@ img {
     --success: #57c18e;
     --border: rgba(246, 242, 232, 0.2);
     --shadow: 0 10px 22px rgba(0, 0, 0, 0.32);
+    --nav-bg: rgba(255, 255, 255, 0.04);
+    --nav-text: var(--header-text);
+    --nav-border: rgba(246, 242, 232, 0.4);
+    --nav-active-bg: #f6c445;
+    --nav-active-text: #1b1208;
+    --header-text: #f6c445;
+    --header-subtitle: #d7c9a8;
     background: radial-gradient(circle at top, #1b1711, #0b0907);
 }
 
-.app-shell.theme-daylight {
+.app-shell.theme-warm {
     --bg: #f4efe2;
     --bg-2: #fbf7f1;
     --panel: #fffdf8;
@@ -756,10 +776,17 @@ img {
     --success: #2f855a;
     --border: rgba(42, 34, 25, 0.18);
     --shadow: 0 10px 22px rgba(42, 34, 25, 0.08);
+    --nav-bg: #fff8ec;
+    --nav-text: var(--header-text);
+    --nav-border: rgba(42, 34, 25, 0.35);
+    --nav-active-bg: #2a2219;
+    --nav-active-text: #fff8ec;
+    --header-text: #b85d1a;
+    --header-subtitle: #6c5f51;
     background: linear-gradient(140deg, #fbf8f0 0%, #efe6d4 100%);
 }
 
-.app-shell.theme-dusk {
+.app-shell.theme-pacific {
     --bg: #102328;
     --bg-2: #162f35;
     --panel: #162f35;
@@ -774,6 +801,13 @@ img {
     --success: #57c18e;
     --border: rgba(243, 239, 233, 0.2);
     --shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
+    --nav-bg: rgba(255, 255, 255, 0.06);
+    --nav-text: var(--header-text);
+    --nav-border: rgba(243, 239, 233, 0.4);
+    --nav-active-bg: #f29e7d;
+    --nav-active-text: #162227;
+    --header-text: #f29e7d;
+    --header-subtitle: #c7c0b5;
     background: linear-gradient(160deg, #0f2024 0%, #1c3a3f 100%);
 }
 

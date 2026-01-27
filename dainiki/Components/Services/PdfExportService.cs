@@ -26,6 +26,10 @@ namespace dainiki.Components.Services
             bool includeTags,
             bool includeAnalytics)
         {
+            includeMood = false;
+            includeTags = false;
+            includeAnalytics = false;
+
             DateTime rangeStart = startDate.Date;
             DateTime rangeEnd = endDate.Date;
             if (rangeEnd < rangeStart)
@@ -39,14 +43,13 @@ namespace dainiki.Components.Services
                 .Include(journal => journal.JournalTags)
                     .ThenInclude(journalTag => journalTag.tag)
                 .Include(journal => journal.JournalMoods)
-                    .ThenInclude(journalMood => journalMood.mood)
+                    .ThenInclude(journalMood => journalMood.mood!)
                         .ThenInclude(mood => mood.category)
                 .Where(journal =>
                     journal.user_id == userId &&
                     journal.journal_date >= rangeStart &&
                     journal.journal_date <= rangeEnd)
                 .OrderBy(journal => journal.journal_date)
-                .ThenBy(journal => journal.journal_time)
                 .ToListAsync();
 
             List<ExportEntry> entries = new List<ExportEntry>();
@@ -73,13 +76,7 @@ namespace dainiki.Components.Services
                 entries.Add(entry);
             }
 
-            DashboardMetrics? metrics = null;
-            if (includeAnalytics)
-            {
-                metrics = await _analyticsService.GetMetricsAsync(userId, rangeStart, rangeEnd);
-            }
-
-            byte[] pdfBytes = BuildPdf(entries, metrics, rangeStart, rangeEnd, includeMood, includeTags, includeAnalytics);
+            byte[] pdfBytes = BuildPdf(entries, null, rangeStart, rangeEnd, includeMood, includeTags, includeAnalytics);
             string fileName = "dainiki-export-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".pdf";
             string filePath = Path.Combine(FileSystem.AppDataDirectory, fileName);
             await File.WriteAllBytesAsync(filePath, pdfBytes);
@@ -149,7 +146,6 @@ namespace dainiki.Components.Services
                         entryColumn.Spacing(4);
                         entryColumn.Item().Text(entry.Title).FontSize(14).SemiBold();
                         entryColumn.Item().Text(entry.DateDisplay).FontColor(Colors.Grey.Darken2);
-                        entryColumn.Item().Text("Word count: " + entry.WordCount).FontColor(Colors.Grey.Darken2);
 
                         if (includeMood)
                         {

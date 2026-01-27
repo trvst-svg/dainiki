@@ -1,0 +1,41 @@
+@using System.IO
+@using Microsoft.Extensions.Logging
+@inherits ErrorBoundary
+@inject ILogger<LoggedErrorBoundary> Logger
+
+@if (CurrentException is null)
+{
+    @ChildContent
+}
+else
+{
+    <div class="card" style="margin: 16px;">
+        <h3 class="section-title">Something went wrong</h3>
+        <p class="list-meta">@CurrentException.Message</p>
+#if DEBUG
+        <pre style="white-space: pre-wrap;">@CurrentException.ToString()</pre>
+#endif
+        <button class="btn btn-secondary" @onclick="Recover">Reload view</button>
+    </div>
+}
+
+@code {
+    protected override Task OnErrorAsync(Exception exception)
+    {
+        Logger.LogError(exception, "Unhandled error in Blazor UI");
+        TryWriteLog(exception);
+        return Task.CompletedTask;
+    }
+
+    private static void TryWriteLog(Exception exception)
+    {
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "blazor-errors.log");
+            File.AppendAllText(path, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {exception}{Environment.NewLine}{Environment.NewLine}");
+        }
+        catch
+        {
+        }
+    }
+}

@@ -7,11 +7,11 @@
 .side-link {
     padding: 12px 14px;
     border-radius: 8px;
-    border: 2px solid var(--text);
-    color: var(--text);
+    border: 2px solid var(--nav-border);
+    color: var(--nav-text);
     font-weight: 600;
     text-align: center;
-    background: var(--panel);
+    background: var(--nav-bg);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -21,6 +21,6 @@
 }
 
 .side-link.active {
-    background: var(--text);
-    color: var(--panel);
+    background: var(--nav-active-bg);
+    color: var(--nav-active-text);
 }

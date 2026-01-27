@@ -94,7 +94,9 @@
         var start = new DateTime(month.Year, month.Month, 1);
         var end = start.AddMonths(1).AddDays(-1);
         var journals = await JournalService.GetJournalsInRangeAsync(Settings.CurrentUser.username, start, end);
-        journalByDate = journals.ToDictionary(journal => journal.journal_date.Date);
+        journalByDate = journals
+            .GroupBy(journal => journal.journal_date.Date)
+            .ToDictionary(group => group.Key, group => group.First());
         monthEntryCount = journals.Count;
 
         var weekStart = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);

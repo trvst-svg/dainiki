@@ -116,6 +116,7 @@
     private string? message;
     private bool quillReady;
     private bool refreshEditor;
+    private bool editorInitFailed;
 
     private const string EditorId = "journal-editor";
 
@@ -169,16 +170,32 @@
     {
         if (!quillReady)
         {
-            await JS.InvokeVoidAsync("dainikiQuill.initEditor", EditorId, description);
-            quillReady = true;
-            refreshEditor = false;
-            return;
+            try
+            {
+                await JS.InvokeVoidAsync("dainikiQuill.initEditor", EditorId, description);
+                quillReady = true;
+                refreshEditor = false;
+                return;
+            }
+            catch (JSException ex)
+            {
+                editorInitFailed = true;
+                message = "Editor failed to load: " + ex.Message;
+                return;
+            }
         }
 
         if (refreshEditor)
         {
-            await JS.InvokeVoidAsync("dainikiQuill.setHtml", EditorId, description);
-            refreshEditor = false;
+            try
+            {
+                await JS.InvokeVoidAsync("dainikiQuill.setHtml", EditorId, description);
+                refreshEditor = false;
+            }
+            catch (JSException ex)
+            {
+                message = "Editor update failed: " + ex.Message;
+            }
         }
     }
 
@@ -267,7 +284,21 @@
             return;
         }
 
-        description = await JS.InvokeAsync<string>("dainikiQuill.getHtml", EditorId);
+        if (editorInitFailed)
+        {
+            message = "Editor is unavailable. Try reloading the page.";
+            return;
+        }
+
+        try
+        {
+            description = await JS.InvokeAsync<string>("dainikiQuill.getHtml", EditorId);
+        }
+        catch (JSException ex)
+        {
+            message = "Unable to read editor content: " + ex.Message;
+            return;
+        }
 
         if (categoryId == 0)
         {

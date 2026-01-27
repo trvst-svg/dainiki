@@ -5,7 +5,7 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">Theme studio</h1>
-        <p class="page-subtitle">Customize your journaling atmosphere with light, dark, or dusk palettes.</p>
+        <p class="page-subtitle">Customize your journaling atmosphere with warm, dark, or pacific palettes.</p>
     </div>
 </div>
 
@@ -42,14 +42,14 @@
 
     private List<ThemeOption> themes = new()
     {
-        new ThemeOption("Daylight", "Warm parchment with soft neutrals.", new[] { "#f4efe2", "#d8cdb8", "#7a6650" }),
-        new ThemeOption("Nocturne", "Deep charcoal with gold accents.", new[] { "#0f0e0b", "#1a1813", "#f6c445" }),
-        new ThemeOption("Dusk", "Muted teal with amber highlights.", new[] { "#102328", "#1a3a3f", "#f29e7d" })
+        new ThemeOption("Warm", "Warm parchment with soft neutrals.", new[] { "#f4efe2", "#d8cdb8", "#7a6650" }),
+        new ThemeOption("Dark", "Deep charcoal with gold accents.", new[] { "#0f0e0b", "#1a1813", "#f6c445" }),
+        new ThemeOption("Pacific", "Muted teal with amber highlights.", new[] { "#102328", "#1a3a3f", "#f29e7d" })
     };
 
     protected override void OnInitialized()
     {
-        var current = Settings.CurrentUser?.theme;
+        var current = ThemeHelpers.NormalizeThemeName(Settings.CurrentUser?.theme);
         if (!string.IsNullOrWhiteSpace(current))
         {
             foreach (var option in themes)

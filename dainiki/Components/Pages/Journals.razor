@@ -72,7 +72,11 @@
 </details>
 
 <div class="card">
-    @if (entries.Count == 0)
+    @if (!string.IsNullOrWhiteSpace(loadError))
+    {
+        <p class="list-meta">@loadError</p>
+    }
+    else if (entries.Count == 0)
     {
         <p class="list-meta">No entries match the current filters.</p>
     }
@@ -83,11 +87,11 @@
             {
                 <div class="list-item">
                     <div>
-                        <NavLink class="timeline-title" href="@($"journals/{entry.Id}")">@entry.Title</NavLink>
-                        <div class="list-meta">@entry.DateDisplay · @entry.Mood · @entry.Tags</div>
+                        <NavLink class="timeline-title" href="@($"/journals/{entry.Id}")">@entry.Title</NavLink>
+                        <div class="list-meta">@entry.DateDisplay - @entry.Mood - @entry.Tags</div>
                     </div>
                     <div class="btn-row">
-                        <NavLink class="btn btn-ghost" href="@($"newjournal/{entry.Id}")">@editLabel</NavLink>
+                        <NavLink class="btn btn-ghost" href="@($"/newjournal/{entry.Id}")">@editLabel</NavLink>
                         <button class="btn btn-danger" type="button" @onclick="() => DeleteEntry(entry.Id)">@deleteLabel</button>
                     </div>
                 </div>
@@ -103,7 +107,7 @@
 </div>
 
 <div class="journal-footer">
-    <NavLink class="btn btn-secondary" href="export">@exportLabel</NavLink>
+    <NavLink class="btn btn-secondary" href="/export">@exportLabel</NavLink>
 </div>
 
 @code {
@@ -118,7 +122,7 @@
     private string prevLabel = "Previous";
     private string nextLabel = "Next";
     private string exportLabel = "Export as pdf";
-    private string pageMeta = "Page 1 of 2";
+    private string pageMeta = "Page 1 of 1";
 
     private string viewChoice = "List";
     private string searchTerm = string.Empty;
@@ -133,10 +137,11 @@
     private int pageNumber = 1;
     private const int pageSize = 6;
     private int totalCount;
+    private string? loadError;
 
     private List<string> viewOptions = new()
     {
-        "List", "Calendar", "Tags"
+        "List", "Calendar"
     };
 
     private List<Mood> allMoods = new();
@@ -150,61 +155,89 @@
     {
         if (Settings.CurrentUser == null)
         {
+            loadError = "Please log in to view your journals.";
             return;
         }
 
-        allMoods = await DbContext.Moods
-            .OrderBy(mood => mood.mood_name)
-            .ToListAsync();
+        try
+        {
+            loadError = null;
 
-        allTags = await DbContext.Tags
-            .OrderBy(tag => tag.tag_name)
-            .ToListAsync();
+            allMoods = await DbContext.Moods
+                .OrderBy(mood => mood.mood_name)
+                .ToListAsync();
 
-        await LoadEntriesAsync();
+            allTags = await DbContext.Tags
+                .OrderBy(tag => tag.tag_name)
+                .ToListAsync();
+
+            await LoadEntriesAsync();
+        }
+        catch (Exception ex)
+        {
+            loadError = "Unable to load journals: " + ex.Message;
+            entries = new List<JournalSummary>();
+            totalCount = 0;
+            pageMeta = "Page 1 of 1";
+        }
     }
 
     private async Task LoadEntriesAsync()
     {
         if (Settings.CurrentUser == null)
         {
+            loadError = "Please log in to view your journals.";
             return;
         }
 
-        JournalFilters filters = new JournalFilters(
-            startDate,
-            endDate,
-            selectedMoodId,
-            selectedTagId,
-            searchTerm,
-            pinnedOnly);
-
-        JournalPageResult result = await JournalService.GetJournalsAsync(
-            Settings.CurrentUser.username,
-            filters,
-            pageNumber,
-            pageSize);
-
-        totalCount = result.TotalCount;
-        entries = result.Items.Select(entry =>
+        try
         {
-            var primaryMood = entry.JournalMoods.FirstOrDefault(mood => mood.mood_role == "Primary")?.mood?.mood_name ?? "No mood";
-            var tags = string.Join(", ", entry.JournalTags
-                .Select(tag => tag.tag?.tag_name)
-                .Where(name => !string.IsNullOrWhiteSpace(name)));
+            loadError = null;
 
-            return new JournalSummary(
-                entry.journal_id,
-                entry.journal_title,
-                entry.journal_date.ToString("MMM dd, yyyy"),
-                primaryMood,
-                string.IsNullOrWhiteSpace(tags) ? "No tags" : tags);
-        }).ToList();
+            JournalFilters filters = new JournalFilters(
+                startDate,
+                endDate,
+                selectedMoodId,
+                selectedTagId,
+                searchTerm,
+                pinnedOnly);
 
-        prevDisabled = pageNumber <= 1;
-        nextDisabled = pageNumber * pageSize >= totalCount;
-        var pageCount = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
-        pageMeta = $"Page {pageNumber} of {pageCount}";
+            JournalPageResult result = await JournalService.GetJournalsAsync(
+                Settings.CurrentUser.username,
+                filters,
+                pageNumber,
+                pageSize);
+
+            totalCount = result.TotalCount;
+            entries = result.Items.Select(entry =>
+            {
+                var primaryMood = entry.JournalMoods.FirstOrDefault(mood => mood.mood_role == "Primary")?.mood?.mood_name ?? "No mood";
+                var tags = string.Join(", ", entry.JournalTags
+                    .Select(tag => tag.tag?.tag_name)
+                    .Where(name => !string.IsNullOrWhiteSpace(name)));
+
+                return new JournalSummary(
+                    entry.journal_id,
+                    entry.journal_title,
+                    entry.journal_date.ToString("MMM dd, yyyy"),
+                    primaryMood,
+                    string.IsNullOrWhiteSpace(tags) ? "No tags" : tags);
+            }).ToList();
+
+            prevDisabled = pageNumber <= 1;
+            nextDisabled = pageNumber * pageSize >= totalCount;
+            var pageCount = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+            pageMeta = $"Page {pageNumber} of {pageCount}";
+        }
+        catch (Exception ex)
+        {
+            loadError = "Unable to load journals: " + ex.Message;
+            entries = new List<JournalSummary>();
+            totalCount = 0;
+            prevDisabled = true;
+            nextDisabled = true;
+            pageMeta = "Page 1 of 1";
+        }
     }
 
     private async Task ApplyFilters()
