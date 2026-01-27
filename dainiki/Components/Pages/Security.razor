@@ -1,7 +1,7 @@
 @page "/security"
-@inject AuthService AuthService
+@inject IAuthService AuthService
 @inject DainikiDbContext DbContext
-@inject AppState AppState
+@inject Services.ISettings Settings
 
 <div class="page-header">
     <div>
@@ -60,16 +60,16 @@
 
     protected override void OnInitialized()
     {
-        if (AppState.CurrentUser != null)
+        if (Settings.CurrentUser != null)
         {
-            autoLock = AppState.CurrentUser.auto_lock;
-            hidePreview = AppState.CurrentUser.hide_preview;
+            autoLock = Settings.CurrentUser.auto_lock;
+            hidePreview = Settings.CurrentUser.hide_preview;
         }
     }
 
     private async Task SaveSecurity()
     {
-        if (AppState.CurrentUser == null)
+        if (Settings.CurrentUser == null)
         {
             message = "Please log in before updating security settings.";
             return;
@@ -83,7 +83,7 @@
                 return;
             }
 
-            var passwordResult = await AuthService.UpdatePasswordAsync(AppState.CurrentUser.username, newPassword);
+            var passwordResult = await AuthService.UpdatePasswordAsync(Settings.CurrentUser.username, newPassword);
             if (!passwordResult.Success)
             {
                 message = passwordResult.ErrorMessage;
@@ -93,7 +93,7 @@
 
         if (!string.IsNullOrWhiteSpace(pin))
         {
-            var pinResult = await AuthService.UpdatePinAsync(AppState.CurrentUser.username, pin);
+            var pinResult = await AuthService.UpdatePinAsync(Settings.CurrentUser.username, pin);
             if (!pinResult.Success)
             {
                 message = pinResult.ErrorMessage;
@@ -101,13 +101,13 @@
             }
         }
 
-        var user = await DbContext.Users.FirstOrDefaultAsync(candidate => candidate.username == AppState.CurrentUser.username);
+        var user = await DbContext.Users.FirstOrDefaultAsync(candidate => candidate.username == Settings.CurrentUser.username);
         if (user != null)
         {
             user.auto_lock = autoLock;
             user.hide_preview = hidePreview;
             await DbContext.SaveChangesAsync();
-            AppState.UpdateUserSettings(hidePreview, autoLock, null);
+            Settings.UpdateUserSettings(hidePreview, autoLock, null);
         }
 
         message = "Security settings saved.";

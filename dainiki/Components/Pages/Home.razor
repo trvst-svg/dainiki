@@ -1,8 +1,8 @@
 @page "/home"
 
 @inject NavigationManager Navigation
-@inject AppState AppState
-@inject AnalyticsService AnalyticsService
+@inject Services.ISettings Settings
+@inject IAnalyticsService AnalyticsService
 
 <div class="center-stack">
     <div>
@@ -29,14 +29,14 @@
 </div>
 
 @code{
-    private string username => AppState.CurrentUser?.username ?? "friend";
-    private AnalyticsService.DashboardMetrics? metrics;
+    private string username => Settings.CurrentUser?.username ?? "friend";
+    private DashboardMetrics? metrics;
 
     protected override async Task OnInitializedAsync()
     {
-        if (AppState.CurrentUser != null)
+        if (Settings.CurrentUser != null)
         {
-            metrics = await AnalyticsService.GetMetricsAsync(AppState.CurrentUser.username);
+            metrics = await AnalyticsService.GetMetricsAsync(Settings.CurrentUser.username);
         }
     }
 

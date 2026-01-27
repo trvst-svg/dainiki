@@ -1,7 +1,7 @@
 @page "/journals/{Id:int}"
 @inject NavigationManager Navigation
-@inject JournalService JournalService
-@inject AppState AppState
+@inject IJournalService JournalService
+@inject Services.ISettings Settings
 
 <div class="page-header">
     <div>
@@ -75,13 +75,13 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
-        if (AppState.CurrentUser == null)
+        if (Settings.CurrentUser == null)
         {
             entry = null;
             return;
         }
 
-        var journal = await JournalService.GetJournalAsync(Id, AppState.CurrentUser.username);
+        var journal = await JournalService.GetJournalAsync(Id, Settings.CurrentUser.username);
         if (journal == null)
         {
             entry = null;
@@ -96,8 +96,8 @@ else
             .ToList();
 
         var tags = journal.JournalTags
-            .Select(tag => tag.tag?.tag_name)
-            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Where(tag => tag.tag != null && !string.IsNullOrWhiteSpace(tag.tag.tag_name))
+            .Select(tag => tag.tag!.tag_name)
             .ToArray();
 
         entry = new JournalEntry(

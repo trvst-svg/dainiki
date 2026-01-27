@@ -1,7 +1,7 @@
 @page "/journals"
-@inject JournalService JournalService
+@inject IJournalService JournalService
 @inject DainikiDbContext DbContext
-@inject AppState AppState
+@inject Services.ISettings Settings
 @inject NavigationManager Navigation
 
 <div class="page-header">
@@ -148,7 +148,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (AppState.CurrentUser == null)
+        if (Settings.CurrentUser == null)
         {
             return;
         }
@@ -166,12 +166,12 @@
 
     private async Task LoadEntriesAsync()
     {
-        if (AppState.CurrentUser == null)
+        if (Settings.CurrentUser == null)
         {
             return;
         }
 
-        var filters = new JournalService.JournalFilters(
+        JournalFilters filters = new JournalFilters(
             startDate,
             endDate,
             selectedMoodId,
@@ -179,8 +179,8 @@
             searchTerm,
             pinnedOnly);
 
-        var result = await JournalService.GetJournalsAsync(
-            AppState.CurrentUser.username,
+        JournalPageResult result = await JournalService.GetJournalsAsync(
+            Settings.CurrentUser.username,
             filters,
             pageNumber,
             pageSize);
@@ -249,12 +249,12 @@
 
     private async Task DeleteEntry(int id)
     {
-        if (AppState.CurrentUser == null)
+        if (Settings.CurrentUser == null)
         {
             return;
         }
 
-        await JournalService.DeleteJournalAsync(id, AppState.CurrentUser.username);
+        await JournalService.DeleteJournalAsync(id, Settings.CurrentUser.username);
         await LoadEntriesAsync();
     }
 

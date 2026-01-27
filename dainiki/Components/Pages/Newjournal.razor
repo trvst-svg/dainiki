@@ -1,8 +1,8 @@
 @page "/newjournal"
 @page "/newjournal/{Id:int?}"
-@inject JournalService JournalService
+@inject IJournalService JournalService
 @inject DainikiDbContext DbContext
-@inject AppState AppState
+@inject Services.ISettings Settings
 @inject IJSRuntime JS
 
 <div class="page-header">
@@ -120,7 +120,7 @@
     private const string EditorId = "journal-editor";
 
     private DateTime entryDate = DateTime.Today;
-    private TimeSpan entryTime = DateTime.Now.TimeOfDay;
+    private TimeOnly entryTime = TimeOnly.FromDateTime(DateTime.Now);
     private int categoryId;
     private bool isPinned;
 
@@ -135,7 +135,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (AppState.CurrentUser == null)
+        if (Settings.CurrentUser == null)
         {
             return;
         }
@@ -184,12 +184,12 @@
 
     private async Task LoadJournalAsync(int journalId)
     {
-        if (AppState.CurrentUser == null)
+        if (Settings.CurrentUser == null)
         {
             return;
         }
 
-        var journal = await JournalService.GetJournalAsync(journalId, AppState.CurrentUser.username);
+        Journal? journal = await JournalService.GetJournalAsync(journalId, Settings.CurrentUser.username);
         if (journal == null)
         {
             message = "Entry not found.";
@@ -200,7 +200,7 @@
         description = journal.journal_content_url;
         refreshEditor = true;
         entryDate = journal.journal_date;
-        entryTime = journal.journal_time;
+        entryTime = TimeOnly.FromTimeSpan(journal.journal_time);
         categoryId = journal.category_id;
         isPinned = journal.is_pinned;
 
@@ -261,7 +261,7 @@
 
     private async Task SaveJournal()
     {
-        if (AppState.CurrentUser == null)
+        if (Settings.CurrentUser == null)
         {
             message = "Please log in first.";
             return;
@@ -286,17 +286,21 @@
             secondaryIds.Add(secondaryMood2Id.Value);
         }
 
-        var result = await JournalService.SaveJournalAsync(new JournalService.JournalInput(
+        DateTime entryDateTime = entryDate.Date.Add(entryTime.ToTimeSpan());
+
+        JournalInput input = new JournalInput(
             Id,
-            AppState.CurrentUser.username,
+            Settings.CurrentUser.username,
             title,
             description,
-            entryDate.Date + entryTime,
+            entryDateTime,
             categoryId,
             isPinned,
             primaryMoodId,
             secondaryIds,
-            selectedTagIds.ToList()));
+            selectedTagIds.ToList());
+
+        JournalSaveResult result = await JournalService.SaveJournalAsync(input);
 
         if (!result.Success)
         {

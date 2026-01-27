@@ -1,5 +1,5 @@
 @page "/settings"
-@inject AppState AppState
+@inject Services.ISettings AppSettings
 @inject DainikiDbContext DbContext
 
 <div class="page-header">
@@ -102,20 +102,20 @@
     protected override void OnInitialized()
     {
         dataLocationValue = Microsoft.Maui.Storage.FileSystem.AppDataDirectory;
-        if (AppState.CurrentUser?.theme != null)
+        if (AppSettings.CurrentUser?.theme != null)
         {
-            selectedTheme = AppState.CurrentUser.theme;
+            selectedTheme = AppSettings.CurrentUser.theme;
         }
     }
 
     private async Task ApplyTheme()
     {
-        if (AppState.CurrentUser == null)
+        if (AppSettings.CurrentUser == null)
         {
             return;
         }
 
-        var user = await DbContext.Users.FirstOrDefaultAsync(candidate => candidate.username == AppState.CurrentUser.username);
+        var user = await DbContext.Users.FirstOrDefaultAsync(candidate => candidate.username == AppSettings.CurrentUser.username);
         if (user == null)
         {
             return;
@@ -123,6 +123,6 @@
 
         user.theme = selectedTheme;
         await DbContext.SaveChangesAsync();
-        AppState.UpdateUserSettings(theme: selectedTheme);
+        AppSettings.UpdateUserSettings(theme: selectedTheme);
     }
 }

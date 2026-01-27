@@ -1,8 +1,7 @@
 @page "/export"
-@inject JournalService JournalService
-@inject AnalyticsService AnalyticsService
-@inject AppState AppState
-@inject IJSRuntime JS
+@inject IJournalService JournalService
+@inject IPdfExportService PdfExportService
+@inject Services.ISettings Settings
 
 <div class="page-header">
     <div>
@@ -62,77 +61,6 @@
     </div>
 </div>
 
-<div id="pdf-export-content" class="pdf-export">
-    <h1>Dainiki Export</h1>
-    <div class="pdf-meta">Range: @PreviewRange</div>
-
-    @if (exportEntries.Count == 0)
-    {
-        <p>No entries found for this range.</p>
-    }
-    else
-    {
-        @foreach (var entry in exportEntries)
-        {
-            <h2>@entry.Title</h2>
-            <div class="pdf-meta">@entry.DateDisplay</div>
-            @if (includeMood)
-            {
-                <div class="pdf-meta">Mood: @entry.MoodDisplay</div>
-            }
-            @if (includeTags)
-            {
-                <div class="pdf-meta">Tags: @entry.TagsDisplay</div>
-            }
-            <div class="ql-editor">@entry.ContentHtml</div>
-            <hr />
-        }
-    }
-
-    @if (includeAnalytics && metrics != null)
-    {
-        <h2>Analytics Summary</h2>
-        <div class="pdf-meta">Total entries: @metrics.TotalEntries</div>
-        <div class="pdf-meta">Current streak: @metrics.CurrentStreak day(s)</div>
-        <div class="pdf-meta">Longest streak: @metrics.LongestStreak day(s)</div>
-        <div class="pdf-meta">Missed days: @metrics.MissedDays</div>
-        @if (metrics.HighestWordCountEntry != null)
-        {
-            <div class="pdf-meta">Highest word count: @metrics.HighestWordCountEntry.journal_title (@metrics.HighestWordCountEntry.word_count words)</div>
-        }
-        @if (metrics.MoodDistribution.Count > 0)
-        {
-            <h3>Mood distribution</h3>
-            <ul>
-                @foreach (var entry in metrics.MoodDistribution)
-                {
-                    <li>@entry.Key: @entry.Value</li>
-                }
-            </ul>
-        }
-        @if (metrics.TagBreakdown.Count > 0)
-        {
-            <h3>Tag breakdown</h3>
-            <ul>
-                @foreach (var entry in metrics.TagBreakdown)
-                {
-                    <li>@entry.Key: @entry.Value</li>
-                }
-            </ul>
-        }
-        @if (metrics.WordCountTrend.Count > 0)
-        {
-            <h3>Word count trend</h3>
-            <ul>
-                @foreach (var entry in metrics.WordCountTrend)
-                {
-                    <li>@entry.Date.ToString("MMM dd, yyyy"): @entry.WordCount</li>
-                }
-            </ul>
-        }
-    }
-</div>
-
 @if (!string.IsNullOrWhiteSpace(message))
 {
     <p style="color: var(--accent-3);">@message</p>
@@ -145,20 +73,37 @@
     private bool includeTags = true;
     private bool includeAnalytics = true;
     private string? message;
-    private List<ExportEntry> exportEntries = new();
-    private AnalyticsService.DashboardMetrics? metrics;
+    private List<ExportEntry> exportEntries = new List<ExportEntry>();
 
-    private string PreviewRange => $"{startDate:MMM dd, yyyy} - {endDate:MMM dd, yyyy}";
+    private string PreviewRange
+    {
+        get { return startDate.ToString("MMM dd, yyyy") + " - " + endDate.ToString("MMM dd, yyyy"); }
+    }
 
     private string PreviewSections
     {
         get
         {
-            var sections = new List<string>();
-            if (includeMood) sections.Add("Mood tracking");
-            if (includeTags) sections.Add("Tags");
-            if (includeAnalytics) sections.Add("Analytics");
-            return sections.Count == 0 ? "None" : string.Join(", ", sections);
+            List<string> sections = new List<string>();
+            if (includeMood)
+            {
+                sections.Add("Mood tracking");
+            }
+            if (includeTags)
+            {
+                sections.Add("Tags");
+            }
+            if (includeAnalytics)
+            {
+                sections.Add("Analytics");
+            }
+
+            if (sections.Count == 0)
+            {
+                return "None";
+            }
+
+            return string.Join(", ", sections);
         }
     }
 
@@ -169,7 +114,7 @@
 
     private async Task ExportPdf()
     {
-        if (AppState.CurrentUser == null)
+        if (Settings.CurrentUser == null)
         {
             message = "Please log in before exporting.";
             return;
@@ -177,69 +122,119 @@
 
         await LoadExportDataAsync();
 
-        var dataUri = await JS.InvokeAsync<string>("dainikiQuill.exportPdfFromElement", "pdf-export-content");
-        if (string.IsNullOrWhiteSpace(dataUri))
+        try
         {
-            message = "Unable to generate PDF. Ensure Quill and html2pdf are loaded locally.";
-            return;
-        }
+            string filePath = await PdfExportService.ExportAsync(
+                Settings.CurrentUser.username,
+                startDate,
+                endDate,
+                includeMood,
+                includeTags,
+                includeAnalytics);
 
-        var commaIndex = dataUri.IndexOf(',');
-        var base64 = commaIndex >= 0 ? dataUri[(commaIndex + 1)..] : dataUri;
-        var bytes = Convert.FromBase64String(base64);
-        var fileName = $"dainiki-export-{DateTime.Now:yyyyMMdd-HHmmss}.pdf";
-        var filePath = Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, fileName);
-        await File.WriteAllBytesAsync(filePath, bytes);
-        message = $"Exported to {filePath}";
+            message = "Exported to " + filePath;
+        }
+        catch (Exception ex)
+        {
+            message = "Export failed: " + ex.Message;
+        }
     }
 
     private async Task LoadExportDataAsync()
     {
         exportEntries.Clear();
-        metrics = null;
 
-        if (AppState.CurrentUser == null)
+        if (Settings.CurrentUser == null)
         {
             return;
         }
 
-        var rangeStart = startDate;
-        var rangeEnd = endDate;
+        DateTime rangeStart = startDate;
+        DateTime rangeEnd = endDate;
         if (rangeEnd < rangeStart)
         {
-            (rangeStart, rangeEnd) = (rangeEnd, rangeStart);
+            DateTime temp = rangeStart;
+            rangeStart = rangeEnd;
+            rangeEnd = temp;
         }
 
-        var entries = await JournalService.GetJournalsInRangeAsync(AppState.CurrentUser.username, rangeStart, rangeEnd);
-        exportEntries = entries.Select(entry =>
+        List<Journal> entries = await JournalService.GetJournalsInRangeAsync(Settings.CurrentUser.username, rangeStart, rangeEnd);
+        foreach (Journal entry in entries)
         {
-            var primaryMood = entry.JournalMoods.FirstOrDefault(mood => mood.mood_role == "Primary")?.mood?.mood_name ?? "None";
-            var secondary = entry.JournalMoods
-                .Where(mood => mood.mood_role == "Secondary")
-                .Select(mood => mood.mood?.mood_name)
-                .Where(name => !string.IsNullOrWhiteSpace(name))
-                .ToList();
-            var moodDisplay = primaryMood + (secondary.Count > 0 ? $" (Secondary: {string.Join(", ", secondary)})" : "");
+            string title = entry.journal_title;
+            string dateDisplay = entry.journal_date.ToString("MMM dd, yyyy");
+            string moodDisplay = BuildMoodDisplay(entry);
+            string tagsDisplay = BuildTagsDisplay(entry);
+            string contentPreview = TextHelpers.StripHtml(entry.journal_content_url);
 
-            var tags = entry.JournalTags
-                .Select(tag => tag.tag?.tag_name)
-                .Where(name => !string.IsNullOrWhiteSpace(name))
-                .ToList();
-
-            return new ExportEntry(
-                entry.journal_id,
-                entry.journal_title,
-                entry.journal_date.ToString("MMM dd, yyyy"),
-                moodDisplay,
-                tags.Count == 0 ? "None" : string.Join(", ", tags),
-                new MarkupString(entry.journal_content_url));
-        }).ToList();
-
-        if (includeAnalytics)
-        {
-            metrics = await AnalyticsService.GetMetricsAsync(AppState.CurrentUser.username, rangeStart, rangeEnd);
+            ExportEntry exportEntry = new ExportEntry();
+            exportEntry.Id = entry.journal_id;
+            exportEntry.Title = title;
+            exportEntry.DateDisplay = dateDisplay;
+            exportEntry.MoodDisplay = moodDisplay;
+            exportEntry.TagsDisplay = tagsDisplay;
+            exportEntry.ContentPreview = contentPreview;
+            exportEntries.Add(exportEntry);
         }
+
     }
 
-    private record ExportEntry(int Id, string Title, string DateDisplay, string MoodDisplay, string TagsDisplay, MarkupString ContentHtml);
+    private static string BuildMoodDisplay(Journal journal)
+    {
+        string primary = "None";
+        List<string> secondary = new List<string>();
+
+        foreach (JournalMood journalMood in journal.JournalMoods)
+        {
+            if (journalMood.mood == null)
+            {
+                continue;
+            }
+
+            if (journalMood.mood_role == "Primary")
+            {
+                primary = journalMood.mood.mood_name;
+            }
+            else if (journalMood.mood_role == "Secondary")
+            {
+                secondary.Add(journalMood.mood.mood_name);
+            }
+        }
+
+        if (secondary.Count == 0)
+        {
+            return primary;
+        }
+
+        return primary + " (Secondary: " + string.Join(", ", secondary) + ")";
+    }
+
+    private static string BuildTagsDisplay(Journal journal)
+    {
+        List<string> tags = new List<string>();
+        foreach (JournalTag journalTag in journal.JournalTags)
+        {
+            if (journalTag.tag != null)
+            {
+                tags.Add(journalTag.tag.tag_name);
+            }
+        }
+
+        if (tags.Count == 0)
+        {
+            return "None";
+        }
+
+        return string.Join(", ", tags);
+    }
+
+    private class ExportEntry
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string DateDisplay { get; set; } = string.Empty;
+        public string MoodDisplay { get; set; } = string.Empty;
+        public string TagsDisplay { get; set; } = string.Empty;
+        public string ContentPreview { get; set; } = string.Empty;
+    }
 }

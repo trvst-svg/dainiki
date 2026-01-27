@@ -1,7 +1,7 @@
 @page "/dashboard"
 @page "/analytics"
-@inject AnalyticsService AnalyticsService
-@inject AppState AppState
+@inject IAnalyticsService AnalyticsService
+@inject Services.ISettings Settings
 
 <div class="page-header">
     <div>
@@ -161,7 +161,7 @@
 
     private string tagBreakdownLabel = "Tag breakdown";
     private List<string> tagBreakdown = new();
-    private List<AnalyticsService.WordCountPoint> wordCountTrend = new();
+    private List<WordCountPoint> wordCountTrend = new List<WordCountPoint>();
     private DateTime? analyticsStartDate = DateTime.Today.AddDays(-30);
     private DateTime? analyticsEndDate = DateTime.Today;
 
@@ -177,13 +177,13 @@
 
     private async Task LoadMetricsAsync()
     {
-        if (AppState.CurrentUser == null)
+        if (Settings.CurrentUser == null)
         {
             return;
         }
 
         var metrics = await AnalyticsService.GetMetricsAsync(
-            AppState.CurrentUser.username,
+            Settings.CurrentUser.username,
             analyticsStartDate,
             analyticsEndDate);
 
