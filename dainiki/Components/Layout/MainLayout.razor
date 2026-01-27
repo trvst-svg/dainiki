@@ -1,6 +1,6 @@
 ﻿@inherits LayoutComponentBase
 @implements IDisposable
-@inject dainiki.Components.Services.AppState AppState
+@inject dainiki.Components.Services.ISettings Settings
 @inject NavigationManager Navigation
 
 <div class="app-shell @ThemeClass">
@@ -23,9 +23,9 @@
 @code {
     protected override void OnInitialized()
     {
-        AppState.OnChange += StateHasChanged;
+        Settings.OnChange += StateHasChanged;
 
-        if (!AppState.IsAuthenticated)
+        if (!Settings.IsAuthenticated)
         {
             Navigation.NavigateTo("/login");
         }
@@ -35,13 +35,13 @@
     {
         get
         {
-            var theme = AppState.CurrentUser?.theme;
+            var theme = Settings.CurrentUser?.theme;
             return string.IsNullOrWhiteSpace(theme) ? string.Empty : $"theme-{theme.ToLowerInvariant()}";
         }
     }
 
     public void Dispose()
     {
-        AppState.OnChange -= StateHasChanged;
+        Settings.OnChange -= StateHasChanged;
     }
 }
