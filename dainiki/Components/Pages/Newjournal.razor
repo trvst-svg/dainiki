@@ -20,10 +20,10 @@
             <input class="input" placeholder="Title" @bind="title" />
         </div>
         <div class="form-field">
-            <label class="form-label">Entry date</label>
-            <div class="btn-row">
-                <input class="input" type="date" @bind="entryDate" />
-                <input class="input" type="time" @bind="entryTime" />
+            <label class="form-label">Entry datetime</label>
+            <div>
+                <p>Date: @entryDate.ToString("dd MMM yyyy")</p>
+               <p>Time: @entryTime</p>
             </div>
         </div>
         <div class="form-field">
