@@ -68,62 +68,68 @@
 
             var consistencyCanvas = document.getElementById(consistencyId);
             var wordCanvas = document.getElementById(wordId);
-            if (!consistencyCanvas || !wordCanvas) {
+            if (!consistencyCanvas && !wordCanvas) {
                 return;
             }
 
             if (this._charts[consistencyId]) {
                 this._charts[consistencyId].destroy();
+                delete this._charts[consistencyId];
             }
 
             if (this._charts[wordId]) {
                 this._charts[wordId].destroy();
+                delete this._charts[wordId];
             }
 
             var baseOptions = buildBaseOptions(theme);
 
-            this._charts[consistencyId] = new Chart(consistencyCanvas, {
-                type: "bar",
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: consistencyValues,
-                        backgroundColor: hexToRgba(theme.accent, 0.85),
-                        borderColor: theme.accent,
-                        borderWidth: 1,
-                        borderRadius: 6,
-                        maxBarThickness: 26
-                    }]
-                },
-                options: Object.assign({}, baseOptions, {
-                    scales: {
-                        x: baseOptions.scales.x,
-                        y: Object.assign({}, baseOptions.scales.y, {
-                            suggestedMax: 1,
-                            ticks: Object.assign({}, baseOptions.scales.y.ticks, {
-                                stepSize: 1
+            if (consistencyCanvas) {
+                this._charts[consistencyId] = new Chart(consistencyCanvas, {
+                    type: "bar",
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: consistencyValues,
+                            backgroundColor: hexToRgba(theme.accent, 0.85),
+                            borderColor: theme.accent,
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            maxBarThickness: 26
+                        }]
+                    },
+                    options: Object.assign({}, baseOptions, {
+                        scales: {
+                            x: baseOptions.scales.x,
+                            y: Object.assign({}, baseOptions.scales.y, {
+                                suggestedMax: 1,
+                                ticks: Object.assign({}, baseOptions.scales.y.ticks, {
+                                    stepSize: 1
+                                })
                             })
-                        })
-                    }
-                })
-            });
+                        }
+                    })
+                });
+            }
 
-            this._charts[wordId] = new Chart(wordCanvas, {
-                type: "line",
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: wordValues,
-                        borderColor: theme.accent2,
-                        backgroundColor: hexToRgba(theme.accent2, 0.2),
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.35,
-                        pointRadius: 2
-                    }]
-                },
-                options: baseOptions
-            });
+            if (wordCanvas) {
+                this._charts[wordId] = new Chart(wordCanvas, {
+                    type: "line",
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: wordValues,
+                            borderColor: theme.accent2,
+                            backgroundColor: hexToRgba(theme.accent2, 0.2),
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 2
+                        }]
+                    },
+                    options: baseOptions
+                });
+            }
         }
     };
 })();

@@ -31,13 +31,6 @@
 <div class="dashboard-grid">
     <div class="dashboard-main">
         <div class="card chart-box">
-            <h3 class="section-title">@consistencyLabel</h3>
-            <div class="chart-surface">
-                <canvas id="consistencyChart"></canvas>
-            </div>
-        </div>
-
-        <div class="card chart-box">
             <h3 class="section-title">@wordCountLabel</h3>
             <div class="chart-surface">
                 <canvas id="wordCountChart"></canvas>
@@ -129,7 +122,6 @@
 @code {
     private string pageTitle = "Dashboard";
     private string pageSubtitle = "Track consistency, streaks, and mood patterns.";
-    private string consistencyLabel = "Journal consistency";
     private string wordCountLabel = "Word count history";
 
     private string highestWordCountLabel = "Highest word count";
