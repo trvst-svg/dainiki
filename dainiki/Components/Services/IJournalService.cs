@@ -4,10 +4,10 @@ namespace dainiki.Components.Services
 
     public interface IJournalService
     {
-        Task<JournalPageResult> GetJournalsAsync(string userId, JournalFilters filters, int page, int pageSize);
-        Task<List<Journal>> GetJournalsInRangeAsync(string userId, DateTime startDate, DateTime endDate);
-        Task<Journal?> GetJournalAsync(int journalId, string userId);
-        Task<JournalSaveResult> SaveJournalAsync(JournalInput input);
-        Task<bool> DeleteJournalAsync(int journalId, string userId);
+        Task<JournalPageResult> GetJournals(string userId, JournalFilters filters, int page, int pageSize);
+        Task<List<Journal>> GetJournalsInRange(string userId, DateTime startDate, DateTime endDate);
+        Task<Journal?> GetJournal(int journalId, string userId);
+        Task<JournalSaveResult> SaveJournal(JournalInput input);
+        Task<bool> DeleteJournal(int journalId, string userId);
     }
 }

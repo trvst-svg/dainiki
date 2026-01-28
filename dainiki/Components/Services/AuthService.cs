@@ -14,7 +14,7 @@ namespace dainiki.Components.Services
             _settings = settings;
         }
 
-        public async Task<AuthResult> RegisterAsync(string username, string password)
+        public async Task<AuthResult> Register(string username, string password)
         {
             string normalized = string.Empty;
             if (username != null)
@@ -47,7 +47,7 @@ namespace dainiki.Components.Services
             return new AuthResult(true, string.Empty);
         }
 
-        public async Task<AuthResult> LoginAsync(string username, string password)
+        public async Task<AuthResult> Login(string username, string password)
         {
             string normalized = string.Empty;
             if (username != null)
@@ -77,7 +77,7 @@ namespace dainiki.Components.Services
             return new AuthResult(true, string.Empty);
         }
 
-        public async Task<AuthResult> UpdatePasswordAsync(string username, string newPassword)
+        public async Task<AuthResult> UpdatePassword(string username, string newPassword)
         {
             if (string.IsNullOrWhiteSpace(newPassword))
             {
@@ -95,7 +95,7 @@ namespace dainiki.Components.Services
             return new AuthResult(true, string.Empty);
         }
 
-        public async Task<AuthResult> UpdatePinAsync(string username, string pin)
+        public async Task<AuthResult> UpdatePin(string username, string pin)
         {
             if (string.IsNullOrWhiteSpace(pin))
             {
@@ -113,7 +113,7 @@ namespace dainiki.Components.Services
             return new AuthResult(true, string.Empty);
         }
 
-        public Task LogoutAsync()
+        public Task Logout()
         {
             _settings.SetUser(null);
             return Task.CompletedTask;

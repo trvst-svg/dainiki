@@ -18,7 +18,7 @@ namespace dainiki.Components.Services
             _analyticsService = analyticsService;
         }
 
-        public async Task<string> ExportAsync(
+        public async Task<string> Export(
             string userId,
             DateTime startDate,
             DateTime endDate,

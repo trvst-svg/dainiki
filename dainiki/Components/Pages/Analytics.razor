@@ -160,7 +160,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadMetricsAsync();
+        await LoadMetrics();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -182,17 +182,17 @@
 
     private async Task ApplyRange()
     {
-        await LoadMetricsAsync();
+        await LoadMetrics();
     }
 
-    private async Task LoadMetricsAsync()
+    private async Task LoadMetrics()
     {
         if (Settings.CurrentUser == null)
         {
             return;
         }
 
-        var metrics = await AnalyticsService.GetMetricsAsync(
+        var metrics = await AnalyticsService.GetMetrics(
             Settings.CurrentUser.username,
             analyticsStartDate,
             analyticsEndDate);

@@ -50,7 +50,7 @@ namespace dainiki
             using IServiceScope scope = app.Services.CreateScope();
             DainikiDbContext dbContext = scope.ServiceProvider.GetRequiredService<DainikiDbContext>();
             dbContext.Database.EnsureCreated();
-            DainikiSeedData.SeedAsync(dbContext).GetAwaiter().GetResult();
+            DainikiSeedData.Seed(dbContext).GetAwaiter().GetResult();
         }
     }
 }

@@ -81,7 +81,7 @@ else
             return;
         }
 
-        var journal = await JournalService.GetJournalAsync(Id, Settings.CurrentUser.username);
+        var journal = await JournalService.GetJournal(Id, Settings.CurrentUser.username);
         if (journal == null)
         {
             entry = null;

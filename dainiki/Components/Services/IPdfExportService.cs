@@ -2,7 +2,7 @@ namespace dainiki.Components.Services
 {
     public interface IPdfExportService
     {
-        Task<string> ExportAsync(
+        Task<string> Export(
             string userId,
             DateTime startDate,
             DateTime endDate,

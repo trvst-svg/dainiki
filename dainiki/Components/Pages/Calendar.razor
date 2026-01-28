@@ -81,10 +81,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadMonthAsync();
+        await LoadMonth();
     }
 
-    private async Task LoadMonthAsync()
+    private async Task LoadMonth()
     {
         if (Settings.CurrentUser == null)
         {
@@ -93,7 +93,7 @@
 
         var start = new DateTime(month.Year, month.Month, 1);
         var end = start.AddMonths(1).AddDays(-1);
-        var journals = await JournalService.GetJournalsInRangeAsync(Settings.CurrentUser.username, start, end);
+        var journals = await JournalService.GetJournalsInRange(Settings.CurrentUser.username, start, end);
         journalByDate = journals
             .GroupBy(journal => journal.journal_date.Date)
             .ToDictionary(group => group.Key, group => group.First());
@@ -148,13 +148,13 @@
     private async Task GoPrevious()
     {
         month = month.AddMonths(-1);
-        await LoadMonthAsync();
+        await LoadMonth();
     }
 
     private async Task GoNext()
     {
         month = month.AddMonths(1);
-        await LoadMonthAsync();
+        await LoadMonth();
     }
 
     private record CalendarEntry(string Date, string Mood, string Title, string Preview);

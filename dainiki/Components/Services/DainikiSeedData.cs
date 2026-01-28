@@ -5,14 +5,14 @@ namespace dainiki.Components.Services
 
     public static class DainikiSeedData
     {
-        public static async Task SeedAsync(DainikiDbContext context)
+        public static async Task Seed(DainikiDbContext context)
         {
-            await EnsureCategoriesAsync(context);
-            await EnsureMoodsAsync(context);
-            await EnsureTagsAsync(context);
+            await EnsureCategories(context);
+            await EnsureMoods(context);
+            await EnsureTags(context);
         }
 
-        private static async Task EnsureCategoriesAsync(DainikiDbContext context)
+        private static async Task EnsureCategories(DainikiDbContext context)
         {
             string[] moodCategories = { "Positive", "Neutral", "Negative" };
             string[] journalCategories = { "Personal", "Work", "Health", "Travel", "Reflection" };
@@ -55,7 +55,7 @@ namespace dainiki.Components.Services
             }
         }
 
-        private static async Task EnsureMoodsAsync(DainikiDbContext context)
+        private static async Task EnsureMoods(DainikiDbContext context)
         {
             bool hasMoods = await context.Moods.AnyAsync();
             if (hasMoods)
@@ -96,7 +96,7 @@ namespace dainiki.Components.Services
             await context.SaveChangesAsync();
         }
 
-        private static async Task EnsureTagsAsync(DainikiDbContext context)
+        private static async Task EnsureTags(DainikiDbContext context)
         {
             bool hasTags = await context.Tags.AnyAsync();
             if (hasTags)

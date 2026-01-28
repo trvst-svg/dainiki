@@ -12,7 +12,7 @@ namespace dainiki.Components.Services
             _context = context;
         }
 
-        public async Task<JournalPageResult> GetJournalsAsync(string userId, JournalFilters filters, int page, int pageSize)
+        public async Task<JournalPageResult> GetJournals(string userId, JournalFilters filters, int page, int pageSize)
         {
             IQueryable<Journal> query = BuildQuery(userId, filters);
 
@@ -26,7 +26,7 @@ namespace dainiki.Components.Services
             return new JournalPageResult(items, totalCount);
         }
 
-        public async Task<List<Journal>> GetJournalsInRangeAsync(string userId, DateTime startDate, DateTime endDate)
+        public async Task<List<Journal>> GetJournalsInRange(string userId, DateTime startDate, DateTime endDate)
         {
             JournalFilters filters = new JournalFilters(startDate, endDate, null, null, null, false);
 
@@ -35,7 +35,7 @@ namespace dainiki.Components.Services
                 .ToListAsync();
         }
 
-        public async Task<Journal?> GetJournalAsync(int journalId, string userId)
+        public async Task<Journal?> GetJournal(int journalId, string userId)
         {
             return await _context.Journals
                 .Include(journal => journal.category)
@@ -47,7 +47,7 @@ namespace dainiki.Components.Services
                 .FirstOrDefaultAsync(journal => journal.journal_id == journalId && journal.user_id == userId);
         }
 
-        public async Task<JournalSaveResult> SaveJournalAsync(JournalInput input)
+        public async Task<JournalSaveResult> SaveJournal(JournalInput input)
         {
             if (string.IsNullOrWhiteSpace(input.Title))
             {
@@ -178,7 +178,7 @@ namespace dainiki.Components.Services
             return new JournalSaveResult(true, journalEntry.journal_id, string.Empty, isNew);
         }
 
-        public async Task<bool> DeleteJournalAsync(int journalId, string userId)
+        public async Task<bool> DeleteJournal(int journalId, string userId)
         {
             Journal? journal = await _context.Journals
                 .FirstOrDefaultAsync(entry => entry.journal_id == journalId && entry.user_id == userId);

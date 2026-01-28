@@ -12,7 +12,7 @@ namespace dainiki.Components.Services
             _context = context;
         }
 
-        public async Task<DashboardMetrics> GetMetricsAsync(string userId, DateTime? startDate = null, DateTime? endDate = null)
+        public async Task<DashboardMetrics> GetMetrics(string userId, DateTime? startDate = null, DateTime? endDate = null)
         {
             if (startDate.HasValue && endDate.HasValue && endDate.Value < startDate.Value)
             {

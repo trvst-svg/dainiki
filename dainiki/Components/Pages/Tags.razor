@@ -63,7 +63,7 @@
             .OrderBy(category => category.category_name)
             .ToListAsync();
 
-        categories = await BuildCategoryItemsAsync(categoryList);
+        categories = await BuildCategoryItems(categoryList);
     }
 
     private async Task AddTag()
@@ -94,7 +94,7 @@
         message = "Tag added.";
     }
 
-    private async Task<List<CategoryItem>> BuildCategoryItemsAsync(List<Category> categoryList)
+    private async Task<List<CategoryItem>> BuildCategoryItems(List<Category> categoryList)
     {
         var items = new List<CategoryItem>();
         foreach (var category in categoryList)

@@ -83,7 +83,7 @@
                 return;
             }
 
-            var passwordResult = await AuthService.UpdatePasswordAsync(Settings.CurrentUser.username, newPassword);
+            var passwordResult = await AuthService.UpdatePassword(Settings.CurrentUser.username, newPassword);
             if (!passwordResult.Success)
             {
                 message = passwordResult.ErrorMessage;
@@ -93,7 +93,7 @@
 
         if (!string.IsNullOrWhiteSpace(pin))
         {
-            var pinResult = await AuthService.UpdatePinAsync(Settings.CurrentUser.username, pin);
+            var pinResult = await AuthService.UpdatePin(Settings.CurrentUser.username, pin);
             if (!pinResult.Success)
             {
                 message = pinResult.ErrorMessage;

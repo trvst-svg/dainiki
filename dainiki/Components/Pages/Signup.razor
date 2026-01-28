@@ -40,7 +40,7 @@
 
     private async Task signupValidator()
     {
-        var result = await AuthService.RegisterAsync(username, password);
+        var result = await AuthService.Register(username, password);
         if (!result.Success)
         {
             message = result.ErrorMessage;

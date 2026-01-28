@@ -42,7 +42,7 @@
 
     private async Task loginValidator()
     {
-        var result = await AuthService.LoginAsync(username, password);
+        var result = await AuthService.Login(username, password);
         if (!result.Success)
         {
             message = result.ErrorMessage;

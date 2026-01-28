@@ -62,7 +62,7 @@
     {
         if (Settings.CurrentUser != null)
         {
-            metrics = await AnalyticsService.GetMetricsAsync(Settings.CurrentUser.username);
+            metrics = await AnalyticsService.GetMetrics(Settings.CurrentUser.username);
         }
     }
 

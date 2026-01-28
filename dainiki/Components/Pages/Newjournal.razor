@@ -158,7 +158,7 @@
 
         if (Id.HasValue)
         {
-            await LoadJournalAsync(Id.Value);
+            await LoadJournal(Id.Value);
         }
         else if (categories.Count > 0)
         {
@@ -199,14 +199,14 @@
         }
     }
 
-    private async Task LoadJournalAsync(int journalId)
+    private async Task LoadJournal(int journalId)
     {
         if (Settings.CurrentUser == null)
         {
             return;
         }
 
-        Journal? journal = await JournalService.GetJournalAsync(journalId, Settings.CurrentUser.username);
+        Journal? journal = await JournalService.GetJournal(journalId, Settings.CurrentUser.username);
         if (journal == null)
         {
             message = "Entry not found.";
@@ -331,7 +331,7 @@
             secondaryIds,
             selectedTagIds.ToList());
 
-        JournalSaveResult result = await JournalService.SaveJournalAsync(input);
+        JournalSaveResult result = await JournalService.SaveJournal(input);
 
         if (!result.Success)
         {
@@ -339,7 +339,7 @@
             if (result.JournalId != 0)
             {
                 Id = result.JournalId;
-                await LoadJournalAsync(result.JournalId);
+                await LoadJournal(result.JournalId);
             }
             return;
         }

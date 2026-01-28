@@ -18,11 +18,11 @@
         <h3 class="section-title">Date range</h3>
         <div class="form-field">
             <label class="form-label">From</label>
-            <input class="input" type="date" @bind="startDate" @bind:after="LoadExportDataAsync" />
+            <input class="input" type="date" @bind="startDate" @bind:after="LoadExportData" />
         </div>
         <div class="form-field">
             <label class="form-label">To</label>
-            <input class="input" type="date" @bind="endDate" @bind:after="LoadExportDataAsync" />
+            <input class="input" type="date" @bind="endDate" @bind:after="LoadExportData" />
         </div>
         <div class="form-field">
             <label class="form-label">Included in PDF</label>
@@ -82,7 +82,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadExportDataAsync();
+        await LoadExportData();
     }
 
     private async Task ExportPdf()
@@ -93,11 +93,11 @@
             return;
         }
 
-        await LoadExportDataAsync();
+        await LoadExportData();
 
         try
         {
-            string filePath = await PdfExportService.ExportAsync(
+            string filePath = await PdfExportService.Export(
                 Settings.CurrentUser.username,
                 startDate,
                 endDate,
@@ -113,7 +113,7 @@
         }
     }
 
-    private async Task LoadExportDataAsync()
+    private async Task LoadExportData()
     {
         exportEntries.Clear();
 
@@ -131,7 +131,7 @@
             rangeEnd = temp;
         }
 
-        List<Journal> entries = await JournalService.GetJournalsInRangeAsync(Settings.CurrentUser.username, rangeStart, rangeEnd);
+        List<Journal> entries = await JournalService.GetJournalsInRange(Settings.CurrentUser.username, rangeStart, rangeEnd);
         foreach (Journal entry in entries)
         {
             string title = entry.journal_title;
